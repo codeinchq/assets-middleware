@@ -156,4 +156,15 @@ class AssetsMiddleware implements MiddlewareInterface
         }
         return $this->assetsLocalPath.DIRECTORY_SEPARATOR.$assetName;
     }
+
+    /**
+     * Returns an assets URI path.
+     *
+     * @param string $asset
+     * @return string
+     */
+    public function getAssetUriPath(string $asset):string
+    {
+        return $this->assetsUriPath.$asset;
+    }
 }
