@@ -61,19 +61,19 @@ class AssetsMiddleware implements MiddlewareInterface
     /**
      * @var bool
      */
-    private $minifyJsAndCss;
+    private $allowAssetsCompression;
 
     /**
      * AssetsMiddleware constructor.
      *
      * @param string $assetsLocalPath
      * @param string $assetsUriPath
-     * @param bool $allowAssetsCache
-     * @param bool $minifyJsAndCss
+     * @param bool $allowAssetsCache Allows assets cache through HTTP headers
+     * @param bool $allowAssetsCompression Compresses CSS, JS and SVG files
      * @throws AssetsMiddlewareException
      */
     public function __construct(string $assetsLocalPath, string $assetsUriPath,
-        bool $allowAssetsCache = true, bool $minifyJsAndCss = false)
+        bool $allowAssetsCache = true, bool $allowAssetsCompression = false)
     {
         if (!is_dir($assetsLocalPath) || ($assetsLocalPath = realpath($assetsLocalPath)) === null) {
             throw new AssetsMiddlewareException(
@@ -84,7 +84,7 @@ class AssetsMiddleware implements MiddlewareInterface
         $this->assetsLocalPath = $assetsLocalPath;
         $this->assetsUriPath = $assetsUriPath;
         $this->allowAssetsCache = $allowAssetsCache;
-        $this->minifyJsAndCss = $minifyJsAndCss;
+        $this->allowAssetsCompression = $allowAssetsCompression;
     }
 
     /**
@@ -103,7 +103,7 @@ class AssetsMiddleware implements MiddlewareInterface
             if (file_exists($assetPath)) {
 
                 // builds the response
-                if (!$this->minifyJsAndCss) {
+                if (!$this->allowAssetsCompression) {
                     $response = new AssetResponse($assetPath, $assetName);
                 }
                 else {
