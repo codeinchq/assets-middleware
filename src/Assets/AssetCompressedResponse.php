@@ -31,14 +31,12 @@ use RuntimeException;
 
 
 /**
- * Class AssetMinifiedResponse
+ * Class AssetCompressedResponse
  *
- * @uses Minify\CSS
- * @uses Minify\JS
  * @package CodeInc\AssetsMiddleware\Assets
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetMinifiedResponse extends StreamResponse implements AssetResponseInterface
+class AssetCompressedResponse extends StreamResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -46,7 +44,7 @@ class AssetMinifiedResponse extends StreamResponse implements AssetResponseInter
     private $assetName;
 
     /**
-     * AssetResponse constructor.
+     * AssetCompressedResponse constructor.
      *
      * @param string $filePath
      * @param string $assetName
