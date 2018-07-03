@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Assets;
 use CodeInc\MediaTypes\MediaTypes;
 use CodeInc\Psr7Responses\StreamResponse;
+use enshrined\svgSanitize\Sanitizer;
 use function GuzzleHttp\Psr7\stream_for;
 use MatthiasMullie\Minify;
 use Psr\Http\Message\StreamInterface;
@@ -30,14 +31,12 @@ use RuntimeException;
 
 
 /**
- * Class AssetMinifiedResponse
+ * Class AssetCompressedResponse
  *
- * @uses Minify\CSS
- * @uses Minify\JS
  * @package CodeInc\AssetsMiddleware\Assets
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetMinifiedResponse extends StreamResponse implements AssetResponseInterface
+class AssetCompressedResponse extends StreamResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -45,7 +44,7 @@ class AssetMinifiedResponse extends StreamResponse implements AssetResponseInter
     private $assetName;
 
     /**
-     * AssetResponse constructor.
+     * AssetCompressedResponse constructor.
      *
      * @param string $filePath
      * @param string $assetName
@@ -98,12 +97,20 @@ class AssetMinifiedResponse extends StreamResponse implements AssetResponseInter
             case 'text/javascript':
                 return stream_for((new Minify\JS($filePath))->minify());
 
+            case 'image/svg+xml':
+                $svgContent = file_get_contents($filePath);
+                if ($svgContent === false) {
+                    throw new RuntimeException(
+                        sprintf("Unable to read the SCF assets file '%s'", $filePath)
+                    );
+                }
+                return stream_for((new Sanitizer())->sanitize($svgContent));
+
             default:
                 $f = fopen($filePath, 'r');
                 if ($f === false) {
                     throw new RuntimeException(
-                        sprintf("Unable to open the assets file '%s'",
-                            $filePath)
+                        sprintf("Unable to open the assets file '%s'", $filePath)
                     );
                 }
                 return stream_for($f);
