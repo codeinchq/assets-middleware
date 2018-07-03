@@ -25,6 +25,8 @@ use CodeInc\MediaTypes\MediaTypes;
 use CodeInc\Psr7Responses\StreamResponse;
 use function GuzzleHttp\Psr7\stream_for;
 use MatthiasMullie\Minify;
+use Psr\Http\Message\StreamInterface;
+use RuntimeException;
 
 
 /**
@@ -69,22 +71,8 @@ class AssetMinifiedResponse extends StreamResponse implements AssetResponseInter
             $mimeType = MediaTypes::getFilenameMediaType($fileName);
         }
 
-        switch ($mimeType) {
-            case 'text/css':
-                $stream = stream_for((new Minify\CSS($filePath))->minify());
-                break;
-
-            case 'text/javascript':
-                $stream = stream_for((new Minify\JS($filePath))->minify());
-                break;
-
-            default:
-                $stream = stream_for($filePath);
-                break;
-        }
-
         parent::__construct(
-            $stream,
+            $this->getStream($mimeType, $filePath),
             $mimeType,
             null,
             $fileName,
@@ -94,6 +82,32 @@ class AssetMinifiedResponse extends StreamResponse implements AssetResponseInter
             $version,
             $reason
         );
+    }
+
+    /**
+     * @param string $mimeType
+     * @param string $filePath
+     * @return StreamInterface
+     */
+    private function getStream(string $mimeType, string $filePath):StreamInterface
+    {
+        switch ($mimeType) {
+            case 'text/css':
+                return stream_for((new Minify\CSS($filePath))->minify());
+
+            case 'text/javascript':
+                return stream_for((new Minify\JS($filePath))->minify());
+
+            default:
+                $f = fopen($filePath, 'r');
+                if ($f === false) {
+                    throw new RuntimeException(
+                        sprintf("Unable to open the assets file '%s'",
+                            $filePath)
+                    );
+                }
+                return stream_for($f);
+        }
     }
 
     /**

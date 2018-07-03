@@ -21,6 +21,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware;
+use RuntimeException;
 use Throwable;
 
 
@@ -29,10 +30,8 @@ use Throwable;
  *
  * @package CodeInc\AssetsMiddleware
  * @author Joan Fabrégat <joan@codeinc.fr>
- * @license MIT <https://github.com/CodeIncHQ/AssetsMiddleware/blob/master/LICENSE>
- * @link https://github.com/CodeIncHQ/AssetsMiddleware
  */
-class AssetsMiddlewareException extends \Exception
+class AssetsMiddlewareException extends RuntimeException
 {
     /**
      * @var AssetsMiddleware
