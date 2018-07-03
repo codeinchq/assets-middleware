@@ -21,6 +21,7 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Assets\AssetMinifiedResponse;
 use CodeInc\AssetsMiddleware\Assets\AssetNotModifiedResponse;
 use CodeInc\AssetsMiddleware\Assets\AssetResponse;
 use CodeInc\AssetsMiddleware\Test\AssetsMiddlewareTest;
@@ -55,16 +56,24 @@ class AssetsMiddleware implements MiddlewareInterface
     /**
      * @var bool
      */
-    private $allowAssetsCache = true;
+    private $allowAssetsCache;
+
+    /**
+     * @var bool
+     */
+    private $minifyJsAndCss;
 
     /**
      * AssetsMiddleware constructor.
      *
      * @param string $assetsLocalPath
      * @param string $assetsUriPath
+     * @param bool $allowAssetsCache
+     * @param bool $minifyJsAndCss
      * @throws AssetsMiddlewareException
      */
-    public function __construct(string $assetsLocalPath, string $assetsUriPath)
+    public function __construct(string $assetsLocalPath, string $assetsUriPath,
+        bool $allowAssetsCache = true, bool $minifyJsAndCss = false)
     {
         if (!is_dir($assetsLocalPath) || ($assetsLocalPath = realpath($assetsLocalPath)) === null) {
             throw new AssetsMiddlewareException(
@@ -74,22 +83,8 @@ class AssetsMiddleware implements MiddlewareInterface
         }
         $this->assetsLocalPath = $assetsLocalPath;
         $this->assetsUriPath = $assetsUriPath;
-    }
-
-    /**
-     * Enables the assets cache (enabled by default).
-     */
-    public function enableAssetsCache():void
-    {
-        $this->allowAssetsCache = false;
-    }
-
-    /**
-     * Disables the assets cache (enabled by default).
-     */
-    public function disableAssetsCache():void
-    {
-        $this->allowAssetsCache = false;
+        $this->allowAssetsCache = $allowAssetsCache;
+        $this->minifyJsAndCss = $minifyJsAndCss;
     }
 
     /**
@@ -106,8 +101,16 @@ class AssetsMiddleware implements MiddlewareInterface
         if (($assetName = $this->getAssetName($request)) !== null) {
             $assetPath = $this->getAssetPath($assetName);
             if (file_exists($assetPath)) {
-                $response = new AssetResponse($assetPath, $assetName);
 
+                // builds the response
+                if (!$this->minifyJsAndCss) {
+                    $response = new AssetResponse($assetPath, $assetName);
+                }
+                else {
+                    $response = new AssetMinifiedResponse($assetPath, $assetName);
+                }
+
+                // enables the cache
                 if ($this->allowAssetsCache) {
                     $assetMTime = filemtime($assetPath);
                     $cache = new CacheUtil();
@@ -123,9 +126,40 @@ class AssetsMiddleware implements MiddlewareInterface
             }
         }
 
-
-        // retruns the handler respnse
+        // returns the handler response
         return $handler->handle($request);
+    }
+
+    /**
+     * @return string
+     */
+    public function getAssetsLocalPath():string
+    {
+        return $this->assetsLocalPath;
+    }
+
+    /**
+     * @return string
+     */
+    public function getAssetsUriPath():string
+    {
+        return $this->assetsUriPath;
+    }
+
+    /**
+     * Enables the assets cache (enabled by default).
+     */
+    public function enableAssetsCache():void
+    {
+        $this->allowAssetsCache = false;
+    }
+
+    /**
+     * Disables the assets cache (enabled by default).
+     */
+    public function disableAssetsCache():void
+    {
+        $this->allowAssetsCache = false;
     }
 
     /**

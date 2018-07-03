@@ -21,16 +21,21 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Assets;
-use CodeInc\Psr7Responses\FileResponse;
+use CodeInc\MediaTypes\MediaTypes;
+use CodeInc\Psr7Responses\StreamResponse;
+use function GuzzleHttp\Psr7\stream_for;
+use MatthiasMullie\Minify;
 
 
 /**
- * Class AssetResponse
+ * Class AssetMinifiedResponse
  *
+ * @uses Minify\CSS
+ * @uses Minify\JS
  * @package CodeInc\AssetsMiddleware\Assets
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetResponse extends FileResponse implements AssetResponseInterface
+class AssetMinifiedResponse extends StreamResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -50,14 +55,45 @@ class AssetResponse extends FileResponse implements AssetResponseInterface
      * @param string $version
      * @param null|string $reason
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
-    public function __construct(string $filePath, string $assetName, ?string $fileName = null,
-        ?string $mimeType = null, bool $asAttachment = false, int $status = 200, array $headers = [],
+    public function __construct(string $filePath, string $assetName, ?string $fileName = null, ?string $mimeType = null,
+        bool $asAttachment = false, int $status = 200, array $headers = [],
         string $version = '1.1', ?string $reason = null)
     {
         $this->assetName = $assetName;
-        parent::__construct($filePath, $fileName, $mimeType, $asAttachment, $status, $headers, $version, $reason);
+
+        if (!$fileName) {
+            $fileName = basename($assetName);
+        }
+        if (!$mimeType) {
+            $mimeType = MediaTypes::getFilenameMediaType($fileName);
+        }
+
+        switch ($mimeType) {
+            case 'text/css':
+                $stream = stream_for((new Minify\CSS($filePath))->minify());
+                break;
+
+            case 'text/javascript':
+                $stream = stream_for((new Minify\JS($filePath))->minify());
+                break;
+
+            default:
+                $stream = stream_for($filePath);
+                break;
+        }
+
+        parent::__construct(
+            $stream,
+            $mimeType,
+            null,
+            $fileName,
+            $asAttachment,
+            $status,
+            $headers,
+            $version,
+            $reason
+        );
     }
 
     /**
