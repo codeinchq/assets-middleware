@@ -21,7 +21,7 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
-use CodeInc\AssetsMiddleware\Assets\AssetMinifiedResponse;
+use CodeInc\AssetsMiddleware\Assets\AssetCompressedResponse;
 use CodeInc\AssetsMiddleware\Assets\AssetNotModifiedResponse;
 use CodeInc\AssetsMiddleware\Assets\AssetResponse;
 use CodeInc\AssetsMiddleware\Test\AssetsMiddlewareTest;
@@ -107,7 +107,7 @@ class AssetsMiddleware implements MiddlewareInterface
                     $response = new AssetResponse($assetPath, $assetName);
                 }
                 else {
-                    $response = new AssetMinifiedResponse($assetPath, $assetName);
+                    $response = new AssetCompressedResponse($assetPath, $assetName);
                 }
 
                 // enables the cache
