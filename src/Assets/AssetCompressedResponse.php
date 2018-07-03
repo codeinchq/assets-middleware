@@ -97,6 +97,7 @@ class AssetCompressedResponse extends StreamResponse implements AssetResponseInt
                 return stream_for($css->minify());
 
             case 'text/javascript':
+            case 'application/javascript':
                 return stream_for((new Minify\JS($filePath))->minify());
 
             case 'image/svg+xml':
