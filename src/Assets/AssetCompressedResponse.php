@@ -92,7 +92,9 @@ class AssetCompressedResponse extends StreamResponse implements AssetResponseInt
     {
         switch ($mimeType) {
             case 'text/css':
-                return stream_for((new Minify\CSS($filePath))->minify());
+                $css = new Minify\CSS($filePath);
+                $css->setImportExtensions([]);
+                return stream_for($css->minify());
 
             case 'text/javascript':
                 return stream_for((new Minify\JS($filePath))->minify());
@@ -104,7 +106,9 @@ class AssetCompressedResponse extends StreamResponse implements AssetResponseInt
                         sprintf("Unable to read the SCF assets file '%s'", $filePath)
                     );
                 }
-                return stream_for((new Sanitizer())->sanitize($svgContent));
+                $sanitizer = new Sanitizer();
+                $sanitizer->minify(true);
+                return stream_for($sanitizer->sanitize($svgContent));
 
             default:
                 $f = fopen($filePath, 'r');
