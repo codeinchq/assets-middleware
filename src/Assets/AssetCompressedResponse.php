@@ -71,7 +71,7 @@ class AssetCompressedResponse extends StreamResponse implements AssetResponseInt
         }
 
         parent::__construct(
-            $this->getStream($mimeType, $filePath),
+            $this->buildStream($mimeType, $filePath),
             $mimeType,
             null,
             $fileName,
@@ -88,7 +88,7 @@ class AssetCompressedResponse extends StreamResponse implements AssetResponseInt
      * @param string $filePath
      * @return StreamInterface
      */
-    private function getStream(string $mimeType, string $filePath):StreamInterface
+    private function buildStream(string $mimeType, string $filePath):StreamInterface
     {
         switch ($mimeType) {
             case 'text/css':
