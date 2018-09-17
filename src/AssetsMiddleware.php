@@ -3,14 +3,14 @@
 // +---------------------------------------------------------------------+
 // | CODE INC. SOURCE CODE                                               |
 // +---------------------------------------------------------------------+
-// | Copyright (c) 2017 - Code Inc. SAS - All Rights Reserved.           |
+// | Copyright (c) 2018 - Code Inc. SAS - All Rights Reserved.           |
 // | Visit https://www.codeinc.fr for more information about licensing.  |
 // +---------------------------------------------------------------------+
 // | NOTICE:  All information contained herein is, and remains the       |
 // | property of Code Inc. SAS. The intellectual and technical concepts  |
 // | contained herein are proprietary to Code Inc. SAS are protected by  |
 // | trade secret or copyright law. Dissemination of this information or |
-// | reproduction of this material  is strictly forbidden unless prior   |
+// | reproduction of this material is strictly forbidden unless prior    |
 // | written permission is obtained from Code Inc. SAS.                  |
 // +---------------------------------------------------------------------+
 //
@@ -22,6 +22,7 @@
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
 use CodeInc\AssetsMiddleware\Assets\AssetCompressedResponse;
+use CodeInc\AssetsMiddleware\Assets\AssetResponseInterface;
 use CodeInc\AssetsMiddleware\Assets\AssetNotModifiedResponse;
 use CodeInc\AssetsMiddleware\Assets\AssetResponse;
 use CodeInc\AssetsMiddleware\Test\AssetsMiddlewareTest;
@@ -30,6 +31,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Zend\Validator\File\Exists;
 
 
 /**
@@ -40,74 +42,72 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @license MIT <https://github.com/CodeIncHQ/AssetsMiddleware/blob/master/LICENSE>
  * @link https://github.com/CodeIncHQ/AssetsMiddleware
  * @see AssetsMiddlewareTest
+ * @version 2
  */
 class AssetsMiddleware implements MiddlewareInterface
 {
     /**
-     * @var string
+     * Stack of local assets directories.
+     *
+     * @see AssetsMiddleware::registerAssetsDirectory()
+     * @var string[]
      */
-    private $assetsLocalPath;
+    private $assetsDirectories = [];
 
     /**
+     * Base assets URI path.
+     *
      * @var string
      */
-    private $assetsUriPath;
+    private $assetsUri;
 
     /**
+     * Allows the assets to the cached in the web browser.
+     *
      * @var bool
      */
     private $allowAssetsCache;
 
     /**
+     * Allows the assets to be minimized.
+     *
      * @var bool
      */
-    private $allowAssetsCompression;
+    private $allowAssetsMinimization;
 
     /**
      * AssetsMiddleware constructor.
      *
-     * @param string $assetsLocalPath
-     * @param string $assetsUriPath
-     * @param bool $allowAssetsCache Allows assets cache through HTTP headers
-     * @param bool $allowAssetsCompression Compresses CSS, JS and SVG files
-     * @throws AssetsMiddlewareException
+     * @param string $assetsUri Base assets URI path
+     * @param bool $allowAssetsCache Allows the assets to the cached in the web browser
+     * @param bool $allowAssetsMinimization Allows the assets to be minimized
      */
-    public function __construct(string $assetsLocalPath, string $assetsUriPath,
-        bool $allowAssetsCache = true, bool $allowAssetsCompression = false)
+    public function __construct(string $assetsUri, bool $allowAssetsCache = true,
+        bool $allowAssetsMinimization = false)
     {
-        if (!is_dir($assetsLocalPath) || ($assetsLocalPath = realpath($assetsLocalPath)) === null) {
-            throw new AssetsMiddlewareException(
-                sprintf("%s is not a directory and can not be used as assets source", $assetsLocalPath),
-                $this
-            );
-        }
-        $this->assetsLocalPath = $assetsLocalPath;
-        $this->assetsUriPath = $assetsUriPath;
+        $this->assetsUri = $assetsUri;
         $this->allowAssetsCache = $allowAssetsCache;
-        $this->allowAssetsCompression = $allowAssetsCompression;
+        $this->allowAssetsMinimization = $allowAssetsMinimization;
     }
 
     /**
      * @inheritdoc
      * @param ServerRequestInterface $request
      * @param RequestHandlerInterface $handler
-     * @return ResponseInterface
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
+     * @return ResponseInterface|AssetResponseInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler):ResponseInterface
     {
         // if the response points toward a valid asset
-        if (($assetName = $this->getAssetName($request)) !== null) {
-            $assetPath = $this->getAssetPath($assetName);
-            if (file_exists($assetPath)) {
-
+        if ($assetPath = $this->getAssetPath($request))
+        {
+            try {
                 // builds the response
-                if (!$this->allowAssetsCompression) {
-                    $response = new AssetResponse($assetPath, $assetName);
+                if (!$this->allowAssetsMinimization) {
+                    $response = new AssetResponse($assetPath);
                 }
                 else {
-                    $response = new AssetCompressedResponse($assetPath, $assetName);
+                    $response = new AssetCompressedResponse($assetPath);
                 }
 
                 // enables the cache
@@ -118,11 +118,15 @@ class AssetsMiddleware implements MiddlewareInterface
                     $response = $cache->withETag($response, hash('sha1', (string)$assetMTime));
                     $response = $cache->withLastModified($response, $assetMTime);
                     if ($cache->isNotModified($request, $response)) {
-                        return new AssetNotModifiedResponse($assetName);
+                        return new AssetNotModifiedResponse($assetPath);
                     }
                 }
 
                 return $response;
+            }
+            catch (\Throwable $exception) {
+                throw new \RuntimeException(sprintf("Error while building the PSR-7 response "
+                    ."for the asset request '%s'", $request->getUri()->getPath()));
             }
         }
 
@@ -131,19 +135,163 @@ class AssetsMiddleware implements MiddlewareInterface
     }
 
     /**
-     * @return string
+     * Returns the asset path corresponding to a request.
+     *
+     * @param ServerRequestInterface $request
+     * @return null|string
      */
-    public function getAssetsLocalPath():string
+    protected function getAssetPath(ServerRequestInterface $request):?string
     {
-        return $this->assetsLocalPath;
+        // passing the request uri path
+        if ($parsedUriPath = $this->parseAssetUriPath($request)) {
+
+            // checking the assets parent directory
+            if ($directoryPath = $this->getAssetsDirectoryPath($parsedUriPath['directoryHash'])) {
+
+                // checking the asset existence
+                $assetPath = $directoryPath.DIRECTORY_SEPARATOR.$parsedUriPath['assetPath'];
+                if ((new Exists($directoryPath))->isValid($assetPath)) {
+                    return $assetPath;
+                }
+            }
+        }
+        return null;
     }
 
     /**
+     * Parsed a request URI path and if the URL is an assets, returns the asset's parent directory hash and path in an
+     * associative array. Returns NULL if the requests does not points toward an asset.
+     *
+     * @param ServerRequestInterface $request
+     * @return array|null
+     */
+    protected function parseAssetUriPath(ServerRequestInterface $request):?array
+    {
+        if (preg_match('#^'.preg_quote($this->assetsUri, '#').'([a-f0-9]{32})/(.+)$#i',
+                $request->getUri()->getPath(), $matches)) {
+            return [
+                'directoryHash' => $matches[1],
+                'assetPath' => $matches[2]
+            ];
+        }
+        return null;
+    }
+
+    /**
+     * @param string $directoryHash
+     * @return null|string
+     */
+    protected function getAssetsDirectoryPath(string $directoryHash):?string
+    {
+        if (($directoryPath = array_search($directoryHash, $this->assetsDirectories)) !== false) {
+            return $directoryPath;
+        }
+        return null;
+    }
+
+    /**
+     * Registers multiple paths to web assets directories.
+     *
+     * Attention : all files in the directories will be publicly available.
+     *
+     * @uses AssetsMiddleware::registerAssetsDirectory()
+     * @param iterable $directories
+     */
+    public function registerAssetsDirectories(iterable $directories):void
+    {
+        foreach ($directories as $directory) {
+            $this->registerAssetsDirectory((string)$directory);
+        }
+    }
+
+    /**
+     * Registers a path to a web assets directory.
+     *
+     * Attention : all files in the directory will be publicly available.
+     *
+     * The method returns the base URI of the where the web assets within the directory will be available. This URI
+     * can then be resolved using getAssetUri() and getAssetsDirUri().
+     *
+     * @param string $assetsDirectory
      * @return string
      */
-    public function getAssetsUriPath():string
+    public function registerAssetsDirectory(string $assetsDirectory):string
     {
-        return $this->assetsUriPath;
+        if (!is_dir($assetsDirectory) || ($assetsDirectory = realpath($assetsDirectory)) === false) {
+            throw new \RuntimeException(sprintf(_("The web assets path '%s' is not a directory"),
+                $assetsDirectory));
+        }
+        if (!is_readable($assetsDirectory)) {
+            throw new \RuntimeException(sprintf(_("The web assets directory '%s' is not readable"),
+                $assetsDirectory));
+        }
+        if (isset($this->assetsDirectories[$assetsDirectory])) {
+            throw new \LogicException(sprintf(_("The web assets directory '%s' is already registered"),
+                $assetsDirectory));
+        }
+
+        $this->assetsDirectories[$assetsDirectory] = md5($assetsDirectory);
+
+        return $this->getAssetsDirectoryUri($assetsDirectory);
+    }
+
+    /**
+     * Returns the base URI path corresponding to a registered web asset's directory.
+     *
+     * @param string $assetsDir
+     * @return string
+     */
+    public function getAssetsDirectoryUri(string $assetsDir):string
+    {
+        if (!isset($this->assetsDirectories[$assetsDir])) {
+            throw new \RuntimeException(sprintf(_("The assets directory '%s' is no registered"),
+                $assetsDir));
+        }
+        return $this->assetsUri.$this->assetsDirectories[$assetsDir].'/';
+    }
+
+    /**
+     * Returns the public URI for a given asset. The asset must be within a registered assets directory.
+     *
+     * @param string $assetPath
+     * @return string
+     */
+    public function getAssetUri(string $assetPath):string
+    {
+        if (($assetPath = realpath($assetPath)) === false) {
+            throw new \LogicException(sprintf(_("Unable to read the real path of the asset '%s'"),
+                $assetPath));
+        }
+
+        foreach ($this->assetsDirectories as $assetsDirectory => $directoryUuid) {
+            if (substr($assetPath, 0, strlen($assetsDirectory)) == $assetsDirectory) {
+                return $this->getAssetsDirectoryUri($assetsDirectory).substr($assetPath, strlen($assetsDirectory));
+            }
+        }
+
+        // is the asset is not in any directory, throwing an exception
+        throw new \LogicException(sprintf(_("The asset '%s' is not within any registered assets directory"),
+            $assetPath));
+    }
+
+    /**
+     * Returns the array of registered assets directories paths.
+     *
+     * @return string[]
+     */
+    public function getAssetsDirectories():array
+    {
+        return array_keys($this->assetsDirectories);
+    }
+
+    /**
+     * Returns the assets base URI.
+     *
+     * @return string
+     */
+    public function getAssetsUri():string
+    {
+        return $this->assetsUri;
     }
 
     /**
@@ -160,45 +308,5 @@ class AssetsMiddleware implements MiddlewareInterface
     public function disableAssetsCache():void
     {
         $this->allowAssetsCache = false;
-    }
-
-    /**
-     * Returns an asset's name from a request or null if the request does'nt points toward an asset.
-     *
-     * @param ServerRequestInterface $request
-     * @return null|string
-     */
-    public function getAssetName(ServerRequestInterface $request):?string
-    {
-        if (preg_match('#^'.preg_quote($this->assetsUriPath, '#').'([\\w\\-_./]+)$#ui',
-            $request->getUri()->getPath(), $matches)) {
-            return $matches[1];
-        }
-        return null;
-    }
-
-    /**
-     * Returns an asset's path.
-     *
-     * @param string $assetName
-     * @return string
-     */
-    public function getAssetPath(string $assetName):string
-    {
-        if (substr($assetName, 0, strlen(DIRECTORY_SEPARATOR)) == DIRECTORY_SEPARATOR) {
-            $assetName = substr($assetName, strlen(DIRECTORY_SEPARATOR));
-        }
-        return $this->assetsLocalPath.DIRECTORY_SEPARATOR.$assetName;
-    }
-
-    /**
-     * Returns an assets URI path.
-     *
-     * @param string $asset
-     * @return string
-     */
-    public function getAssetUriPath(string $asset):string
-    {
-        return $this->assetsUriPath.$asset;
     }
 }

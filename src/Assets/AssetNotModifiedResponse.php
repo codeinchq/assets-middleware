@@ -35,31 +35,25 @@ class AssetNotModifiedResponse extends Response implements AssetResponseInterfac
     /**
      * @var string
      */
-    private $assetName;
+    private $assetPath;
 
     /**
      * AssetNotModifiedResponse constructor.
      *
-     * @param string $assetName
-     * @param int $status
-     * @param array $headers
-     * @param null $body
-     * @param string $version
-     * @param null|string $reason
+     * @param string $assetPath
      */
-    public function __construct(string $assetName, int $status = 304, array $headers = [], $body = null,
-        string $version = '1.1', ?string $reason = null)
+    public function __construct(string $assetPath)
     {
-        $this->assetName = $assetName;
-        parent::__construct($status, $headers, $body, $version, $reason);
+        $this->assetPath = $assetPath;
+        parent::__construct(304);
     }
 
     /**
      * @inheritdoc
      * @return string
      */
-    public function getAssetName():string
+    public function getAssetPath():string
     {
-        return $this->assetName;
+        return $this->assetPath;
     }
 }

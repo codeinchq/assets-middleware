@@ -21,8 +21,8 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Test;
-use CodeInc\AssetsMiddleware\Assets\AssetNotModifiedResponse;
 use CodeInc\AssetsMiddleware\Assets\AssetResponseInterface;
+use CodeInc\AssetsMiddleware\Assets\AssetNotModifiedResponse;
 use CodeInc\AssetsMiddleware\AssetsMiddleware;
 use CodeInc\MiddlewareTestKit\FakeRequestHandler;
 use CodeInc\MiddlewareTestKit\FakeServerRequest;
@@ -46,16 +46,11 @@ final class AssetsMiddlewareTest extends TestCase
     ];
 
     /**
-     * @throws \CodeInc\AssetsMiddleware\AssetsMiddlewareException
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
     public function testAssets():void
     {
-        $middleware = new AssetsMiddleware(
-            __DIR__ . '/Assets',
-            '/assets/v2/'
-        );
+        $middleware = new AssetsMiddleware(__DIR__ . '/Assets', true);
+        $middleware->registerAssetsDirectory('/assets/v2/');
 
         foreach (self::ASSETS as $path => $type) {
             self::assertFileExists($path);
@@ -69,7 +64,6 @@ final class AssetsMiddlewareTest extends TestCase
 
             self::assertInstanceOf(ResponseInterface::class, $response);
             self::assertInstanceOf(AssetResponseInterface::class, $response);
-            self::assertEquals($response->getAssetName(), basename($path));
             self::assertEquals($type, $response->getHeaderLine('Content-Type'));
             self::assertNotEmpty($response->getHeaderLine('Cache-Control'));
             self::assertNotEmpty($response->getHeaderLine('ETag'));
@@ -79,17 +73,11 @@ final class AssetsMiddlewareTest extends TestCase
     }
 
     /**
-     * @throws \CodeInc\AssetsMiddleware\AssetsMiddlewareException
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
     public function testUncachedAssets():void
     {
-        $middleware = new AssetsMiddleware(
-            __DIR__ . '/Assets',
-            '/assets/v2/'
-        );
-        $middleware->disableAssetsCache();
+        $middleware = new AssetsMiddleware(__DIR__ . '/Assets', false);
+        $middleware->registerAssetsDirectory('/assets/v2/');
 
         foreach (self::ASSETS as $path => $type) {
             self::assertFileExists($path);
@@ -110,16 +98,11 @@ final class AssetsMiddlewareTest extends TestCase
     }
 
     /**
-     * @throws \CodeInc\AssetsMiddleware\AssetsMiddlewareException
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
     public function testNotFoundAsset():void
     {
-        $middleware = new AssetsMiddleware(
-            __DIR__ . '/Assets',
-            '/assets/v2/'
-        );
+        $middleware = new AssetsMiddleware(__DIR__ . '/Assets');
+        $middleware->registerAssetsDirectory('/assets/v2/');
         $response = $middleware->process(
             FakeServerRequest::getSecureServerRequestWithPath('/assets/v2/a-not-found-asset.bin'),
             new FakeRequestHandler()
@@ -129,16 +112,11 @@ final class AssetsMiddlewareTest extends TestCase
     }
 
     /**
-     * @throws \CodeInc\AssetsMiddleware\AssetsMiddlewareException
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
     public function testNonAssetRequest():void
     {
-        $middleware = new AssetsMiddleware(
-            __DIR__ . '/Assets',
-            '/assets/v2/'
-        );
+        $middleware = new AssetsMiddleware(__DIR__ . '/Assets');
+        $middleware->registerAssetsDirectory('/assets/v2/');
         $response = $middleware->process(
             FakeServerRequest::getSecureServerRequestWithPath('/a-page.html'),
             new FakeRequestHandler()
@@ -148,16 +126,11 @@ final class AssetsMiddlewareTest extends TestCase
     }
 
     /**
-     * @throws \CodeInc\AssetsMiddleware\AssetsMiddlewareException
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
     public function testDateCacheAsset():void
     {
-        $middleware = new AssetsMiddleware(
-            __DIR__ . '/Assets',
-            '/assets/'
-        );
+        $middleware = new AssetsMiddleware(__DIR__ . '/Assets');
+        $middleware->registerAssetsDirectory('/assets/');
 
         $request = FakeServerRequest::getSecureServerRequestWithPath('/assets/image.svg')
             ->withHeader('If-Modified-Since', date('D, d M Y H:i:s \G\M\T'));
@@ -167,20 +140,15 @@ final class AssetsMiddlewareTest extends TestCase
 
         self::assertInstanceOf(ResponseInterface::class, $response);
         self::assertInstanceOf(AssetNotModifiedResponse::class, $response);
-        self::assertEquals($response->getAssetName(), 'image.svg');
+        self::assertEquals(basename($response->getAssetPath()), 'image.svg');
     }
 
     /**
-     * @throws \CodeInc\AssetsMiddleware\AssetsMiddlewareException
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
     public function testEtagCacheAsset():void
     {
-        $middleware = new AssetsMiddleware(
-            __DIR__ . '/Assets',
-            '/assets/'
-        );
+        $middleware = new AssetsMiddleware(__DIR__ . '/Assets');
+        $middleware->registerAssetsDirectory('/assets/');
 
         $request = FakeServerRequest::getSecureServerRequestWithPath('/assets/image.svg')
             ->withHeader('If-None-Match', '"9fda03907099301a7e94f69f6502b3f3805bf1c3"');
@@ -190,6 +158,6 @@ final class AssetsMiddlewareTest extends TestCase
 
         self::assertInstanceOf(ResponseInterface::class, $response);
         self::assertInstanceOf(AssetNotModifiedResponse::class, $response);
-        self::assertEquals($response->getAssetName(), 'image.svg');
+        self::assertEquals(basename($response->getAssetPath()), 'image.svg');
     }
 }

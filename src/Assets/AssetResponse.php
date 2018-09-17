@@ -35,37 +35,27 @@ class AssetResponse extends FileResponse implements AssetResponseInterface
     /**
      * @var string
      */
-    private $assetName;
+    private $assetPath;
 
     /**
      * AssetResponse constructor.
      *
-     * @param string $filePath
-     * @param string $assetName
-     * @param null|string $fileName
-     * @param null|string $mimeType
-     * @param bool $asAttachment
-     * @param int $status
-     * @param array $headers
-     * @param string $version
-     * @param null|string $reason
+     * @param string $assetPath
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
-     * @throws \CodeInc\Psr7Responses\ResponseException
      */
-    public function __construct(string $filePath, string $assetName, ?string $fileName = null,
-        ?string $mimeType = null, bool $asAttachment = false, int $status = 200, array $headers = [],
-        string $version = '1.1', ?string $reason = null)
+    public function __construct(string $assetPath)
     {
-        $this->assetName = $assetName;
-        parent::__construct($filePath, $fileName, $mimeType, $asAttachment, $status, $headers, $version, $reason);
+        $this->assetPath = $assetPath;
+        parent::__construct($assetPath, basename($assetPath), null, false);
     }
+
 
     /**
      * @inheritdoc
      * @return string
      */
-    public function getAssetName():string
+    public function getAssetPath():string
     {
-        return $this->assetName;
+        return $this->assetPath;
     }
 }

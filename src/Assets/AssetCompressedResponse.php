@@ -22,7 +22,7 @@
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Assets;
 use CodeInc\MediaTypes\MediaTypes;
-use CodeInc\Psr7Responses\StreamResponse;
+use CodeInc\Psr7Responses\FileResponse;
 use enshrined\svgSanitize\Sanitizer;
 use function GuzzleHttp\Psr7\stream_for;
 use MatthiasMullie\Minify;
@@ -36,61 +36,34 @@ use RuntimeException;
  * @package CodeInc\AssetsMiddleware\Assets
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetCompressedResponse extends StreamResponse implements AssetResponseInterface
+class AssetCompressedResponse extends FileResponse implements AssetResponseInterface
 {
     /**
      * @var string
      */
-    private $assetName;
+    private $assetPath;
 
     /**
      * AssetCompressedResponse constructor.
      *
-     * @param string $filePath
-     * @param string $assetName
-     * @param null|string $fileName
-     * @param null|string $mimeType
-     * @param bool $asAttachment
-     * @param int $status
-     * @param array $headers
-     * @param string $version
-     * @param null|string $reason
+     * @param string $assetPath
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
-    public function __construct(string $filePath, string $assetName, ?string $fileName = null, ?string $mimeType = null,
-        bool $asAttachment = false, int $status = 200, array $headers = [],
-        string $version = '1.1', ?string $reason = null)
+    public function __construct(string $assetPath)
     {
-        $this->assetName = $assetName;
-
-        if (!$fileName) {
-            $fileName = basename($assetName);
-        }
-        if (!$mimeType) {
-            $mimeType = MediaTypes::getFilenameMediaType($fileName);
-        }
-
-        parent::__construct(
-            $this->buildStream($mimeType, $filePath),
-            $mimeType,
-            null,
-            $fileName,
-            $asAttachment,
-            $status,
-            $headers,
-            $version,
-            $reason
-        );
+        $this->assetPath = $assetPath;
+        parent::__construct($this->buildStream($assetPath), basename($assetPath),
+            null, false);
     }
 
     /**
-     * @param string $mimeType
      * @param string $filePath
      * @return StreamInterface
+     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
-    private function buildStream(string $mimeType, string $filePath):StreamInterface
+    private function buildStream(string $filePath):StreamInterface
     {
-        switch ($mimeType) {
+        switch (MediaTypes::getFilenameMediaType($filePath)) {
             case 'text/css':
                 $css = new Minify\CSS($filePath);
                 $css->setImportExtensions([]);
@@ -123,11 +96,12 @@ class AssetCompressedResponse extends StreamResponse implements AssetResponseInt
     }
 
     /**
-     * @inheritdoc
+     * Returns the asset's path.
+     *
      * @return string
      */
-    public function getAssetName():string
+    public function getAssetPath():string
     {
-        return $this->assetName;
+        return $this->assetPath;
     }
 }
