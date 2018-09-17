@@ -1,6 +1,6 @@
 {
   "name": "codeinc/assets-middleware",
-  "version": "1.2.3",
+  "version": "2.0.0-beta.1",
   "description": "A PSR-15 middleware to server static assets (CSS, JS, images, etc.)",
   "homepage": "https://github.com/CodeIncHQ/AssetsMiddleware",
   "type": "library",
