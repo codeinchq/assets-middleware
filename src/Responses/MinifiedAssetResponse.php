@@ -20,7 +20,7 @@
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware\Assets;
+namespace CodeInc\AssetsMiddleware\Responses;
 use CodeInc\MediaTypes\MediaTypes;
 use CodeInc\Psr7Responses\FileResponse;
 use enshrined\svgSanitize\Sanitizer;
@@ -31,12 +31,12 @@ use RuntimeException;
 
 
 /**
- * Class AssetCompressedResponse
+ * Class MinifiedAssetResponse
  *
- * @package CodeInc\AssetsMiddleware\Assets
+ * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetCompressedResponse extends FileResponse implements AssetResponseInterface
+class MinifiedAssetResponse extends FileResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -44,7 +44,7 @@ class AssetCompressedResponse extends FileResponse implements AssetResponseInter
     private $assetPath;
 
     /**
-     * AssetCompressedResponse constructor.
+     * MinifiedAssetResponse constructor.
      *
      * @param string $assetPath
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException

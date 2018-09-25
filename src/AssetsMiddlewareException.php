@@ -21,8 +21,6 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware;
-use RuntimeException;
-use Throwable;
 
 
 /**
@@ -31,33 +29,40 @@ use Throwable;
  * @package CodeInc\AssetsMiddleware
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetsMiddlewareException extends RuntimeException
+class AssetsMiddlewareException extends \Exception
 {
-    /**
-     * @var AssetsMiddleware
-     */
-    private $assetsMiddleware;
+    public const CODE_RESPONSE_ERROR = 1;
+    public const CODE_NOT_A_DIRECTORY = 2;
+    public const CODE_EMPTY_DIRECTORY_KEY = 3;
 
     /**
-     * AssetsMiddlewareException constructor.
-     *
-     * @param string $message
-     * @param AssetsMiddleware $assetsMiddleware
-     * @param int $code
-     * @param Throwable|null $previous
+     * @param string $assetPath
+     * @param \Throwable $error
+     * @return AssetsMiddlewareException
      */
-    public function __construct(string $message, AssetsMiddleware $assetsMiddleware,
-        int $code = 0, Throwable $previous = null)
+    public static function responseError(string $assetPath, \Throwable $error):self
     {
-        $this->assetsMiddleware = $assetsMiddleware;
-        parent::__construct($message, $code, $previous);
+        return new self(sprintf("Error while building the PSR-7 response for the asset '%s'.", $assetPath),
+            self::CODE_RESPONSE_ERROR, $error);
     }
 
     /**
-     * @return AssetsMiddleware
+     * @param string $directoryPath
+     * @return AssetsMiddlewareException
      */
-    public function getAssetsMiddleware():AssetsMiddleware
+    public static function notADirectory(string $directoryPath):self
     {
-        return $this->assetsMiddleware;
+        return new self(sprintf("The path '%s' is not a directory or does not exist.", $directoryPath),
+            self::CODE_NOT_A_DIRECTORY);
+    }
+
+    /**
+     * @param string $directoryPath
+     * @return AssetsMiddlewareException
+     */
+    public static function emptyDirectoryKey(string $directoryPath):self
+    {
+        return new self(sprintf("The key of the directory '%s' can not empty.", $directoryPath),
+            self::CODE_EMPTY_DIRECTORY_KEY);
     }
 }

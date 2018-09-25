@@ -21,8 +21,8 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Test;
-use CodeInc\AssetsMiddleware\Assets\AssetResponseInterface;
-use CodeInc\AssetsMiddleware\Assets\AssetNotModifiedResponse;
+use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
+use CodeInc\AssetsMiddleware\Responses\NotModifiedAssetResponse;
 use CodeInc\AssetsMiddleware\AssetsMiddleware;
 use CodeInc\MiddlewareTestKit\FakeRequestHandler;
 use CodeInc\MiddlewareTestKit\FakeServerRequest;
@@ -46,11 +46,12 @@ final class AssetsMiddlewareTest extends TestCase
     ];
 
     /**
+     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
     public function testAssets():void
     {
         $middleware = new AssetsMiddleware(__DIR__ . '/Assets', true);
-        $middleware->registerAssetsDirectory('/assets/v2/');
+        $middleware->addAssetsDirectory('/assets/v2/');
 
         foreach (self::ASSETS as $path => $type) {
             self::assertFileExists($path);
@@ -139,7 +140,7 @@ final class AssetsMiddlewareTest extends TestCase
         $response = $middleware->process($request, new FakeRequestHandler());
 
         self::assertInstanceOf(ResponseInterface::class, $response);
-        self::assertInstanceOf(AssetNotModifiedResponse::class, $response);
+        self::assertInstanceOf(NotModifiedAssetResponse::class, $response);
         self::assertEquals(basename($response->getAssetPath()), 'image.svg');
     }
 
@@ -157,7 +158,7 @@ final class AssetsMiddlewareTest extends TestCase
         $response = $middleware->process($request, new FakeRequestHandler());
 
         self::assertInstanceOf(ResponseInterface::class, $response);
-        self::assertInstanceOf(AssetNotModifiedResponse::class, $response);
+        self::assertInstanceOf(NotModifiedAssetResponse::class, $response);
         self::assertEquals(basename($response->getAssetPath()), 'image.svg');
     }
 }

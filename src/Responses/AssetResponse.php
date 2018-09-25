@@ -16,21 +16,21 @@
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
 // Date:     03/05/2018
-// Time:     16:31
+// Time:     16:30
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware\Assets;
-use GuzzleHttp\Psr7\Response;
+namespace CodeInc\AssetsMiddleware\Responses;
+use CodeInc\Psr7Responses\FileResponse;
 
 
 /**
- * Class AssetNotModifiedResponse
+ * Class AssetResponse
  *
- * @package CodeInc\AssetsMiddleware\Assets
+ * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetNotModifiedResponse extends Response implements AssetResponseInterface
+class AssetResponse extends FileResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -38,15 +38,17 @@ class AssetNotModifiedResponse extends Response implements AssetResponseInterfac
     private $assetPath;
 
     /**
-     * AssetNotModifiedResponse constructor.
+     * AssetResponse constructor.
      *
      * @param string $assetPath
+     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
     public function __construct(string $assetPath)
     {
         $this->assetPath = $assetPath;
-        parent::__construct(304);
+        parent::__construct($assetPath, basename($assetPath), null, false);
     }
+
 
     /**
      * @inheritdoc
