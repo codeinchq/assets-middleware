@@ -151,7 +151,8 @@ abstract class AbstractAssetsMiddleware implements MiddlewareInterface
     {
         foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
             if (substr($assetPath, 0, strlen($directoryPath)) == $directoryPath) {
-                return $this->assetsUriPrefix.urlencode($directoryKey).'/'.substr($assetPath, strlen($directoryPath));
+                return $this->assetsUriPrefix.urlencode($directoryKey)
+                    .str_replace('\\', '/', substr($assetPath, strlen($directoryPath)));
             }
         }
         return null;
