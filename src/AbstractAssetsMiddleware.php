@@ -21,6 +21,7 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Exceptions\ResponseErrorException;
 use CodeInc\AssetsMiddleware\Responses\MinifiedAssetResponse;
 use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
 use CodeInc\AssetsMiddleware\Responses\NotModifiedAssetResponse;
@@ -92,7 +93,6 @@ abstract class AbstractAssetsMiddleware implements MiddlewareInterface
      * @param ServerRequestInterface $request
      * @param RequestHandlerInterface $handler
      * @return AssetResponseInterface
-     * @throws AssetsMiddlewareException
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler):ResponseInterface
     {
@@ -129,7 +129,7 @@ abstract class AbstractAssetsMiddleware implements MiddlewareInterface
                             }
                         }
                         catch (\Throwable $exception) {
-                            throw AssetsMiddlewareException::responseError($assetPath, $exception);
+                            throw new ResponseErrorException($assetPath, 0, $exception);
                         }
 
                         return $response;

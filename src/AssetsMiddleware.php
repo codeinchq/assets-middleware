@@ -21,6 +21,9 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Exceptions\InvalidAssetPathException;
+use CodeInc\AssetsMiddleware\Exceptions\EmptyDirectoryKeyException;
+use CodeInc\AssetsMiddleware\Exceptions\NotADirectoryException;
 use CodeInc\AssetsMiddleware\Test\AssetsMiddlewareTest;
 
 
@@ -46,15 +49,14 @@ class AssetsMiddleware extends AbstractAssetsMiddleware
      *
      * @param string $directoryPath
      * @param string|null $directoryKey
-     * @throws AssetsMiddlewareException
      */
     public function addAssetsDirectory(string $directoryPath, string $directoryKey = null):void
     {
         if (!is_dir($directoryPath) || ($directoryPath = realpath($directoryPath)) === false) {
-            throw AssetsMiddlewareException::notADirectory($directoryPath);
+            throw new NotADirectoryException($directoryPath);
         }
         if ($directoryKey !== null && empty($directoryKey)) {
-            throw AssetsMiddlewareException::emptyDirectoryKey($directoryPath);
+            throw new EmptyDirectoryKeyException($directoryPath);
         }
         $this->assetsDirectories[$directoryKey ?? md5($directoryPath)] = $directoryPath;
     }
@@ -66,5 +68,18 @@ class AssetsMiddleware extends AbstractAssetsMiddleware
    protected function getAssetsDirectories():iterable
    {
        return $this->assetsDirectories;
+   }
+
+    /**
+     * @inheritdoc
+     * @param string $assetPath
+     * @return null|string
+     */
+   public function getAssetUri(string $assetPath):?string
+   {
+       if (($realAssetPath = realpath($assetPath)) === false) {
+           throw new InvalidAssetPathException($assetPath);
+       }
+       return parent::getAssetUri($realAssetPath);
    }
 }
