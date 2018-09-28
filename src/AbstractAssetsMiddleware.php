@@ -21,6 +21,7 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Exceptions\NotADirectoryException;
 use CodeInc\AssetsMiddleware\Exceptions\ResponseErrorException;
 use CodeInc\AssetsMiddleware\Responses\MinifiedAssetResponse;
 use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
@@ -31,7 +32,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Zend\Validator\File\Exists;
 
 
 /**
@@ -105,11 +105,14 @@ abstract class AbstractAssetsMiddleware implements MiddlewareInterface
 
                 // if a match is found
                 if ($matches[1] == $directoryKey) {
+                    if (($realDirectoryPath = realpath($directoryPath)) === false) {
+                        throw new NotADirectoryException($directoryPath);
+                    }
 
                     // validating the assets location
-                    $assetPath = $directoryPath.DIRECTORY_SEPARATOR.$matches[2];
-                    if ((new Exists($directoryPath))->isValid($assetPath)) {
-
+                    $assetPath = realpath($directoryPath.DIRECTORY_SEPARATOR.$matches[2]);
+                    if ($assetPath && substr($assetPath, 0, strlen($realDirectoryPath)) == $realDirectoryPath)
+                    {
                         try {
                             // building the response
                             $response = $this->minimizeAssets
@@ -126,13 +129,13 @@ abstract class AbstractAssetsMiddleware implements MiddlewareInterface
                                 if ($cache->isNotModified($request, $response)) {
                                     $response = new NotModifiedAssetResponse($assetPath);
                                 }
+                                return $response;
                             }
+                            return $response;
                         }
                         catch (\Throwable $exception) {
                             throw new ResponseErrorException($assetPath, 0, $exception);
                         }
-
-                        return $response;
                     }
                 }
             }

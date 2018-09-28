@@ -47,7 +47,7 @@ class NotADirectoryException extends \LogicException implements AssetsMiddleware
     {
         $this->path = $path;
         parent::__construct(
-            sprintf("The path '%s' is not a directory or does not exist.", $path),
+            sprintf("The assets path '%s' is not a directory or does not exist.", $path),
             $code,
             $previous
         );
