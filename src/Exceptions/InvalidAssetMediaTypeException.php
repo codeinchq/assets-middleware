@@ -3,34 +3,33 @@
 // +---------------------------------------------------------------------+
 // | CODE INC. SOURCE CODE                                               |
 // +---------------------------------------------------------------------+
-// | Copyright (c) 2017 - Code Inc. SAS - All Rights Reserved.           |
+// | Copyright (c) 2018 - Code Inc. SAS - All Rights Reserved.           |
 // | Visit https://www.codeinc.fr for more information about licensing.  |
 // +---------------------------------------------------------------------+
 // | NOTICE:  All information contained herein is, and remains the       |
 // | property of Code Inc. SAS. The intellectual and technical concepts  |
 // | contained herein are proprietary to Code Inc. SAS are protected by  |
 // | trade secret or copyright law. Dissemination of this information or |
-// | reproduction of this material  is strictly forbidden unless prior   |
+// | reproduction of this material is strictly forbidden unless prior    |
 // | written permission is obtained from Code Inc. SAS.                  |
 // +---------------------------------------------------------------------+
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
-// Date:     03/05/2018
-// Time:     16:30
+// Date:     04/10/2018
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware\Responses;
-use CodeInc\Psr7Responses\FileResponse;
+namespace CodeInc\AssetsMiddleware\Exceptions;
+use Throwable;
 
 
 /**
- * Class AssetResponse
+ * Class InvalidAssetMediaType
  *
- * @package CodeInc\AssetsMiddleware\Responses
+ * @package CodeInc\AssetsMiddleware\Exceptions
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetResponse extends FileResponse implements AssetResponseInterface
+class InvalidAssetMediaTypeException extends \RuntimeException implements AssetsMiddlewareException
 {
     /**
      * @var string
@@ -38,25 +37,42 @@ class AssetResponse extends FileResponse implements AssetResponseInterface
     private $assetPath;
 
     /**
-     * AssetResponse constructor.
+     * @var string
+     */
+    private $mediaType;
+
+    /**
+     * InvalidAssetMediaTypeException constructor.
      *
      * @param string $assetPath
      * @param string $mediaType
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
+     * @param int $code
+     * @param Throwable|null $previous
      */
-    public function __construct(string $assetPath, string $mediaType)
+    public function __construct(string $assetPath, string $mediaType, int $code = 0, Throwable $previous = null)
     {
         $this->assetPath = $assetPath;
-        parent::__construct($assetPath, basename($assetPath), $mediaType, false);
+        $this->mediaType = $mediaType;
+        parent::__construct(
+            sprintf("The media type '%s' of the asset '%s' is not allowed.", $mediaType, $assetPath),
+            $code,
+            $previous
+        );
     }
 
-
     /**
-     * @inheritdoc
      * @return string
      */
     public function getAssetPath():string
     {
         return $this->assetPath;
+    }
+
+    /**
+     * @return string
+     */
+    public function getMediaType():string
+    {
+        return $this->mediaType;
     }
 }

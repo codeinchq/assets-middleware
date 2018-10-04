@@ -44,26 +44,31 @@ class MinifiedAssetResponse extends FileResponse implements AssetResponseInterfa
     private $assetPath;
 
     /**
+     * @var string
+     */
+    private $mediaType;
+
+    /**
      * MinifiedAssetResponse constructor.
      *
      * @param string $assetPath
+     * @param string $mediaType
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
-    public function __construct(string $assetPath)
+    public function __construct(string $assetPath, string $mediaType)
     {
         $this->assetPath = $assetPath;
-        parent::__construct($this->buildStream($assetPath), basename($assetPath),
-            null, false);
+        $this->mediaType = $mediaType;
+        parent::__construct($this->buildStream($assetPath), basename($assetPath), $mediaType, false);
     }
 
     /**
      * @param string $filePath
      * @return StreamInterface
-     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
     private function buildStream(string $filePath):StreamInterface
     {
-        switch (MediaTypes::getFilenameMediaType($filePath)) {
+        switch ($this->mediaType) {
             case 'text/css':
                 $css = new Minify\CSS($filePath);
                 $css->setImportExtensions([]);

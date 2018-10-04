@@ -74,6 +74,13 @@ class AssetsMiddleware
     private $minimizeAssets;
 
     /**
+     * Limits the allowed assets media types.
+     *
+     * @var null|string[]
+     */
+    private $allowedMediaTypes;
+
+    /**
      * AssetsMiddleware constructor.
      *
      * @param string $assetsUriPrefix Base assets URI path
@@ -174,6 +181,11 @@ class AssetsMiddleware
             // reading the assets media type
             $assetMediaType = MediaTypes::getFilenameMediaType($assetPath);
 
+            // checking the asset's media type
+            if (!$this->isMediaTypeAllowed($assetMediaType)) {
+                throw new InvalidAssetMediaTypeException($assetPath, $assetMediaType);
+            }
+
             // building the response
             $response = $this->minimizeAssets
                 ? new MinifiedAssetResponse($assetPath, $assetMediaType) :
@@ -196,6 +208,25 @@ class AssetsMiddleware
         catch (\Throwable $exception) {
             throw new ResponseErrorException($assetPath, 0, $exception);
         }
+    }
+
+    /**
+     * Verifies if the assets media type is supported.
+     *
+     * @param string $assetMediaType
+     * @return bool
+     */
+    protected function isMediaTypeAllowed(string $assetMediaType):bool
+    {
+        if (is_array($this->allowedMediaTypes) && !empty($this->allowedMediaTypes)) {
+            foreach ($this->allowedMediaTypes as $mediaType) {
+                if (strcasecmp($assetMediaType, $mediaType) === 0 || fnmatch($mediaType, $assetMediaType)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     /**
