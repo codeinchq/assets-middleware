@@ -3,61 +3,61 @@
 // +---------------------------------------------------------------------+
 // | CODE INC. SOURCE CODE                                               |
 // +---------------------------------------------------------------------+
-// | Copyright (c) 2017 - Code Inc. SAS - All Rights Reserved.           |
+// | Copyright (c) 2018 - Code Inc. SAS - All Rights Reserved.           |
 // | Visit https://www.codeinc.fr for more information about licensing.  |
 // +---------------------------------------------------------------------+
 // | NOTICE:  All information contained herein is, and remains the       |
 // | property of Code Inc. SAS. The intellectual and technical concepts  |
 // | contained herein are proprietary to Code Inc. SAS are protected by  |
 // | trade secret or copyright law. Dissemination of this information or |
-// | reproduction of this material  is strictly forbidden unless prior   |
+// | reproduction of this material is strictly forbidden unless prior    |
 // | written permission is obtained from Code Inc. SAS.                  |
 // +---------------------------------------------------------------------+
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
-// Date:     03/05/2018
-// Time:     16:15
+// Date:     28/09/2018
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware;
-use RuntimeException;
+namespace CodeInc\AssetsMiddleware\Exceptions;
 use Throwable;
 
 
 /**
- * Class AssetsMiddlewareException
+ * Class EmptyDirectoryKeyException
  *
- * @package CodeInc\AssetsMiddleware
+ * @package CodeInc\AssetsMiddleware\Exceptions
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetsMiddlewareException extends RuntimeException
+class EmptyDirectoryKeyException extends \LogicException implements AssetsMiddlewareException
 {
     /**
-     * @var AssetsMiddleware
+     * @var string
      */
-    private $assetsMiddleware;
+    private $directoryPath;
 
     /**
-     * AssetsMiddlewareException constructor.
+     * EmptyDirectoryKeyException constructor.
      *
-     * @param string $message
-     * @param AssetsMiddleware $assetsMiddleware
+     * @param string $directoryPath
      * @param int $code
      * @param Throwable|null $previous
      */
-    public function __construct(string $message, AssetsMiddleware $assetsMiddleware,
-        int $code = 0, Throwable $previous = null)
+    public function __construct(string $directoryPath, int $code = 0, Throwable $previous = null)
     {
-        $this->assetsMiddleware = $assetsMiddleware;
-        parent::__construct($message, $code, $previous);
+        $this->directoryPath = $directoryPath;
+        parent::__construct(
+            sprintf("The key of the directory '%s' can not empty.", $directoryPath),
+            $code,
+            $previous
+        );
     }
 
     /**
-     * @return AssetsMiddleware
+     * @return string
      */
-    public function getAssetsMiddleware():AssetsMiddleware
+    public function getDirectoryPath():string
     {
-        return $this->assetsMiddleware;
+        return $this->directoryPath;
     }
 }

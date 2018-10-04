@@ -16,26 +16,47 @@
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
 // Date:     03/05/2018
-// Time:     17:15
+// Time:     16:30
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware\Assets;
-use Psr\Http\Message\ResponseInterface;
+namespace CodeInc\AssetsMiddleware\Responses;
+use CodeInc\Psr7Responses\FileResponse;
 
 
 /**
- * Interface AssetResponseInterface
+ * Class AssetResponse
  *
- * @package CodeInc\AssetsMiddleware\Assets
+ * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-interface AssetResponseInterface extends ResponseInterface
+class AssetResponse extends FileResponse implements AssetResponseInterface
 {
     /**
-     * Returns the name of the asset.
+     * @var string
+     */
+    private $assetPath;
+
+    /**
+     * AssetResponse constructor.
      *
+     * @param string $assetPath
+     * @param string $mediaType
+     * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
+     */
+    public function __construct(string $assetPath, string $mediaType)
+    {
+        $this->assetPath = $assetPath;
+        parent::__construct($assetPath, basename($assetPath), $mediaType, false);
+    }
+
+
+    /**
+     * @inheritdoc
      * @return string
      */
-    public function getAssetName():string;
+    public function getAssetPath():string
+    {
+        return $this->assetPath;
+    }
 }
