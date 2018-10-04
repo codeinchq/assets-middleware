@@ -34,6 +34,7 @@ use CodeInc\MediaTypes\MediaTypes;
 use Micheh\Cache\CacheUtil;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 
@@ -45,7 +46,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @license MIT <https://github.com/CodeIncHQ/AssetsMiddleware/blob/master/LICENSE>
  * @link https://github.com/CodeIncHQ/AssetsMiddleware
  */
-class AssetsMiddleware
+class AssetsMiddleware implements MiddlewareInterface
 {
     /**
      * @var array
