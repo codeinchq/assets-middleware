@@ -21,10 +21,20 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Exceptions\InvalidAssetMediaTypeException;
 use CodeInc\AssetsMiddleware\Exceptions\InvalidAssetPathException;
 use CodeInc\AssetsMiddleware\Exceptions\EmptyDirectoryKeyException;
 use CodeInc\AssetsMiddleware\Exceptions\NotADirectoryException;
-use CodeInc\AssetsMiddleware\Test\AssetsMiddlewareTest;
+use CodeInc\AssetsMiddleware\Exceptions\ResponseErrorException;
+use CodeInc\AssetsMiddleware\Responses\AssetResponse;
+use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
+use CodeInc\AssetsMiddleware\Responses\MinifiedAssetResponse;
+use CodeInc\AssetsMiddleware\Responses\NotModifiedAssetResponse;
+use CodeInc\MediaTypes\MediaTypes;
+use Micheh\Cache\CacheUtil;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 
 /**
@@ -34,15 +44,49 @@ use CodeInc\AssetsMiddleware\Test\AssetsMiddlewareTest;
  * @author Joan Fabrégat <joan@codeinc.fr>
  * @license MIT <https://github.com/CodeIncHQ/AssetsMiddleware/blob/master/LICENSE>
  * @link https://github.com/CodeIncHQ/AssetsMiddleware
- * @see AssetsMiddlewareTest
- * @version 2
  */
-class AssetsMiddleware extends AbstractAssetsMiddleware
+class AssetsMiddleware
 {
     /**
      * @var array
      */
     private $assetsDirectories = [];
+
+    /**
+     * Base assets URI path.
+     *
+     * @var string
+     */
+    private $assetsUriPrefix;
+
+    /**
+     * Allows the assets to the cached in the web browser.
+     *
+     * @var bool
+     */
+    private $cacheAssets;
+
+    /**
+     * Allows the assets to be minimized.
+     *
+     * @var bool
+     */
+    private $minimizeAssets;
+
+    /**
+     * AssetsMiddleware constructor.
+     *
+     * @param string $assetsUriPrefix Base assets URI path
+     * @param bool $cacheAssets Allows the assets to the cached in the web browser
+     * @param bool $minimizeAssets Minimizes the assets before sending them (@see AssetCompressedResponse)
+     */
+    public function __construct(string $assetsUriPrefix, bool $cacheAssets = true,
+        bool $minimizeAssets = false)
+    {
+        $this->assetsUriPrefix = $assetsUriPrefix;
+        $this->cacheAssets = $cacheAssets;
+        $this->minimizeAssets = $minimizeAssets;
+    }
 
     /**
      * Adds an assets directory
@@ -71,15 +115,106 @@ class AssetsMiddleware extends AbstractAssetsMiddleware
    }
 
     /**
-     * @inheritdoc
-     * @param string $assetPath
-     * @return null|string
+     * Sets the allowed media types for the assets. The comparison supports shell patterns with operators
+     * like *, ?, etc.
+     *
+     * @param iterable $allowMediaTypes
      */
-   public function getAssetUri(string $assetPath):?string
-   {
-       if (($realAssetPath = realpath($assetPath)) === false) {
-           throw new InvalidAssetPathException($assetPath);
-       }
-       return parent::getAssetUri($realAssetPath);
-   }
+    public function setAllowMediaTypes(iterable $allowMediaTypes):void
+    {
+        $this->allowedMediaTypes = ($allowMediaTypes instanceof \Traversable)
+            ? iterator_to_array($allowMediaTypes)
+            : $allowMediaTypes;
+    }
+
+    /**
+     * @inheritdoc
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @return AssetResponseInterface
+     */
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler):ResponseInterface
+    {
+        // if the requests points toward an assets directory
+        if (preg_match('#^'.preg_quote($this->assetsUriPrefix, '#').'([^/]+)/(.+)$#i',
+            $request->getUri()->getPath(), $matches)) {
+
+            // searching for the corresponding assets directory
+            foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
+
+                // if a match is found
+                if ($matches[1] == $directoryKey) {
+                    if (($realDirectoryPath = realpath($directoryPath)) === false) {
+                        throw new NotADirectoryException($directoryPath);
+                    }
+
+                    // validating the assets location
+                    $assetPath = realpath($directoryPath.DIRECTORY_SEPARATOR.$matches[2]);
+                    if ($assetPath && substr($assetPath, 0, strlen($realDirectoryPath)) == $realDirectoryPath)
+                    {
+                        return $this->buildAssetResponse($assetPath, $request);
+                    }
+                }
+            }
+        }
+
+        return $handler->handle($request);
+    }
+
+    /**
+     * Builds and returns the asset's PSR-7 response.
+     *
+     * @param string $assetPath
+     * @param ServerRequestInterface $request
+     * @return AssetResponseInterface
+     */
+    private function buildAssetResponse(string $assetPath, ServerRequestInterface $request):AssetResponseInterface
+    {
+        try {
+            // reading the assets media type
+            $assetMediaType = MediaTypes::getFilenameMediaType($assetPath);
+
+            // building the response
+            $response = $this->minimizeAssets
+                ? new MinifiedAssetResponse($assetPath, $assetMediaType) :
+                new AssetResponse($assetPath, $assetMediaType);
+
+            // enabling cache
+            if ($this->cacheAssets) {
+                $assetMTime = filemtime($assetPath);
+                $cache = new CacheUtil();
+                $response = $cache->withCache($response, true, 3600);
+                $response = $cache->withETag($response, hash('sha1', (string)$assetMTime));
+                $response = $cache->withLastModified($response, $assetMTime);
+                if ($cache->isNotModified($request, $response)) {
+                    $response = new NotModifiedAssetResponse($assetPath);
+                }
+                return $response;
+            }
+            return $response;
+        }
+        catch (\Throwable $exception) {
+            throw new ResponseErrorException($assetPath, 0, $exception);
+        }
+    }
+
+    /**
+     * Returns the public URI for a given asset. The asset must be within a registered assets directory.
+     *
+     * @param string $assetPath
+     * @return string
+     */
+    public function getAssetUri(string $assetPath):?string
+    {
+        if (($realAssetPath = realpath($assetPath)) === false) {
+            throw new InvalidAssetPathException($assetPath);
+        }
+        foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
+            if (substr($assetPath, 0, strlen($directoryPath)) == $directoryPath) {
+                return $this->assetsUriPrefix.urlencode($directoryKey)
+                    .str_replace('\\', '/', substr($assetPath, strlen($directoryPath)));
+            }
+        }
+        return null;
+    }
 }
