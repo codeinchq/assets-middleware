@@ -15,7 +15,8 @@
     "codeinc/psr7-responses": "^2",
     "matthiasmullie/minify": "^1.3",
     "codeinc/media-types": "^1.0",
-    "enshrined/svg-sanitize": "^0.8.2"
+    "enshrined/svg-sanitize": "^0.8.2",
+    "ramsey/uuid": "^3.8"
   },
   "require-dev": {
     "phpunit/phpunit": "^7",
