@@ -21,7 +21,6 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
-use CodeInc\MediaTypes\MediaTypes;
 use CodeInc\Psr7Responses\FileResponse;
 use enshrined\svgSanitize\Sanitizer;
 use function GuzzleHttp\Psr7\stream_for;
@@ -59,7 +58,14 @@ class MinifiedAssetResponse extends FileResponse implements AssetResponseInterfa
     {
         $this->assetPath = $assetPath;
         $this->mediaType = $mediaType;
-        parent::__construct($this->buildStream($assetPath), basename($assetPath), $mediaType, false);
+        parent::__construct(
+            $this->buildStream($assetPath),
+            basename($assetPath),
+            200,
+            '',
+            $mediaType,
+            false
+        );
     }
 
     /**

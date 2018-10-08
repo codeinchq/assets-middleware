@@ -21,7 +21,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
-use GuzzleHttp\Psr7\Response;
+use CodeInc\Psr7Responses\EmptyResponse;
 
 
 /**
@@ -30,7 +30,7 @@ use GuzzleHttp\Psr7\Response;
  * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class NotModifiedAssetResponse extends Response implements AssetResponseInterface
+class NotModifiedAssetResponse extends EmptyResponse implements AssetResponseInterface
 {
     /**
      * @var string
