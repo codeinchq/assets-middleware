@@ -20,7 +20,7 @@
   "require-dev": {
     "phpunit/phpunit": "^7",
     "guzzlehttp/psr7": "^1.4",
-    "codeinc/middleware-test-kit": "^1.0"
+    "codeinc/middleware-test-kit": "^1"
   },
   "autoload": {
     "psr-4": {"CodeInc\\AssetsMiddleware\\": "src/"}
