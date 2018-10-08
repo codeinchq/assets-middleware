@@ -21,7 +21,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
-use CodeInc\Psr7Responses\FileResponse;
+use CodeInc\Psr7Responses\LocalFileResponse;
 
 
 /**
@@ -30,7 +30,7 @@ use CodeInc\Psr7Responses\FileResponse;
  * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetResponse extends FileResponse implements AssetResponseInterface
+class AssetResponse extends LocalFileResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -41,18 +41,19 @@ class AssetResponse extends FileResponse implements AssetResponseInterface
      * AssetResponse constructor.
      *
      * @param string $assetPath
-     * @param string $mediaType
+     * @param string $contentType
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
-    public function __construct(string $assetPath, string $mediaType)
+    public function __construct(string $assetPath, string $contentType)
     {
         $this->assetPath = $assetPath;
         parent::__construct(
             $assetPath,
-            basename($assetPath),
             200,
             '',
-            $mediaType,
+            null,
+            $contentType,
+            null,
             false
         );
     }
