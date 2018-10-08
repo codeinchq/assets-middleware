@@ -47,7 +47,14 @@ class AssetResponse extends FileResponse implements AssetResponseInterface
     public function __construct(string $assetPath, string $mediaType)
     {
         $this->assetPath = $assetPath;
-        parent::__construct($assetPath, basename($assetPath), $mediaType, false);
+        parent::__construct(
+            $assetPath,
+            basename($assetPath),
+            200,
+            '',
+            $mediaType,
+            false
+        );
     }
 
 
