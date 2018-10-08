@@ -59,11 +59,12 @@ class MinifiedAssetResponse extends FileResponse implements AssetResponseInterfa
         $this->assetPath = $assetPath;
         $this->mediaType = $mediaType;
         parent::__construct(
-            $this->buildStream($assetPath),
             basename($assetPath),
+            $this->buildStream($assetPath),
             200,
             '',
             $mediaType,
+            null,
             false
         );
     }

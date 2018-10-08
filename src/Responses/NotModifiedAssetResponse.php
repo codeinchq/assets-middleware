@@ -21,7 +21,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
-use CodeInc\Psr7Responses\EmptyResponse;
+use CodeInc\Psr7Responses\NotModifiedResponse;
 
 
 /**
@@ -30,7 +30,7 @@ use CodeInc\Psr7Responses\EmptyResponse;
  * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class NotModifiedAssetResponse extends EmptyResponse implements AssetResponseInterface
+class NotModifiedAssetResponse extends NotModifiedResponse implements AssetResponseInterface
 {
     /**
      * @var string
@@ -45,7 +45,7 @@ class NotModifiedAssetResponse extends EmptyResponse implements AssetResponseInt
     public function __construct(string $assetPath)
     {
         $this->assetPath = $assetPath;
-        parent::__construct(304);
+        parent::__construct();
     }
 
     /**
