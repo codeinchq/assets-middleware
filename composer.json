@@ -1,6 +1,6 @@
 {
   "name": "codeinc/assets-middleware",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A PSR-15 middleware to server static assets (CSS, JS, images, etc.)",
   "homepage": "https://github.com/CodeIncHQ/AssetsMiddleware",
   "type": "library",
@@ -12,7 +12,7 @@
     "psr/http-server-middleware": "^1.0",
     "psr/http-server-handler": "^1.0",
     "micheh/psr7-cache": "^0.5.0",
-    "codeinc/psr7-responses": "^1.2",
+    "codeinc/psr7-responses": "^2",
     "matthiasmullie/minify": "^1.3",
     "codeinc/media-types": "^1.0",
     "enshrined/svg-sanitize": "^0.8.2"
@@ -20,7 +20,7 @@
   "require-dev": {
     "phpunit/phpunit": "^7",
     "guzzlehttp/psr7": "^1.4",
-    "codeinc/middleware-test-kit": "^1.0"
+    "codeinc/middleware-test-kit": "^1"
   },
   "autoload": {
     "psr-4": {"CodeInc\\AssetsMiddleware\\": "src/"}
