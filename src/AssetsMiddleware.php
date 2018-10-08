@@ -243,8 +243,27 @@ class AssetsMiddleware implements MiddlewareInterface
         }
         foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
             if (substr($assetPath, 0, strlen($directoryPath)) == $directoryPath) {
-                return $this->assetsUriPrefix.urlencode($directoryKey)
-                    .str_replace('\\', '/', substr($assetPath, strlen($directoryPath)));
+                return $this->assetsUriPrefix.urlencode($directoryKey).'/'
+                    .str_replace('\\', '/', substr($assetPath, strlen($directoryPath) + 1));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the URI of an assets directory.
+     *
+     * @param string $dirPath
+     * @return null|string
+     */
+    public function getAssetsDirectoryUri(string $dirPath):?string
+    {
+        if (($realDirPath = realpath($dirPath)) === false) {
+            throw new InvalidAssetPathException($dirPath);
+        }
+        foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
+            if ($realDirPath = $directoryPath) {
+                return $this->assetsUriPrefix.urlencode($directoryKey).'/';
             }
         }
         return null;
