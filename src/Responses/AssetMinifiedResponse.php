@@ -21,99 +21,78 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 use CodeInc\Psr7Responses\FileResponse;
 use enshrined\svgSanitize\Sanitizer;
 use function GuzzleHttp\Psr7\stream_for;
 use MatthiasMullie\Minify;
 use Psr\Http\Message\StreamInterface;
-use RuntimeException;
 
 
 /**
- * Class MinifiedAssetResponse
+ * Class AssetMinifiedResponse
  *
  * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class MinifiedAssetResponse extends FileResponse implements AssetResponseInterface
+class AssetMinifiedResponse extends FileResponse implements AssetResponseInterface
 {
     /**
-     * @var string
+     * @var AssetInterface
      */
-    private $assetPath;
+    private $asset;
 
     /**
-     * @var string
-     */
-    private $mediaType;
-
-    /**
-     * MinifiedAssetResponse constructor.
+     * AssetMinifiedResponse constructor.
      *
-     * @param string $assetPath
-     * @param string $mediaType
+     * @param AssetInterface $asset
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
-    public function __construct(string $assetPath, string $mediaType)
+    public function __construct(AssetInterface $asset)
     {
-        $this->assetPath = $assetPath;
-        $this->mediaType = $mediaType;
+        $this->asset = $asset;
         parent::__construct(
-            basename($assetPath),
-            $this->buildStream($assetPath),
+            $asset->getFilename(),
+            $this->getAssetMinifiedContent(),
             200,
             '',
-            $mediaType,
-            null,
-            false
+            $asset->getMediaType(),
+            $asset->getSize(),
+            $asset->asAttachment()
         );
     }
 
     /**
-     * @param string $filePath
      * @return StreamInterface
      */
-    private function buildStream(string $filePath):StreamInterface
+    private function getAssetMinifiedContent():StreamInterface
     {
-        switch ($this->mediaType) {
+        switch ($this->asset->getMediaType()) {
             case 'text/css':
-                $css = new Minify\CSS($filePath);
+                $css = new Minify\CSS();
+                $css->add($this->asset->getContent()->__toString());
                 $css->setImportExtensions([]);
                 return stream_for($css->minify());
 
             case 'text/javascript':
             case 'application/javascript':
-                return stream_for((new Minify\JS($filePath))->minify());
+                $js = new Minify\JS();
+                $js->add($this->asset->getContent()->__toString());
+                return stream_for($js->minify());
 
             case 'image/svg+xml':
-                $svgContent = file_get_contents($filePath);
-                if ($svgContent === false) {
-                    throw new RuntimeException(
-                        sprintf("Unable to read the SCF assets file '%s'", $filePath)
-                    );
-                }
                 $sanitizer = new Sanitizer();
                 $sanitizer->minify(true);
-                return stream_for($sanitizer->sanitize($svgContent));
-
-            default:
-                $f = fopen($filePath, 'r');
-                if ($f === false) {
-                    throw new RuntimeException(
-                        sprintf("Unable to open the assets file '%s'", $filePath)
-                    );
-                }
-                return stream_for($f);
+                return stream_for($sanitizer->sanitize($this->asset->getContent()->__toString()));
         }
+        return $this->asset->getContent();
     }
 
     /**
-     * Returns the asset's path.
-     *
-     * @return string
+     * @return AssetInterface
      */
-    public function getAssetPath():string
+    public function getAsset():AssetInterface
     {
-        return $this->assetPath;
+        return $this->asset;
     }
 }

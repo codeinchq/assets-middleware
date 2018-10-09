@@ -21,8 +21,8 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
-use CodeInc\Psr7Responses\LocalFileResponse;
-
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
+use CodeInc\Psr7Responses\FileResponse;
 
 /**
  * Class AssetResponse
@@ -30,41 +30,39 @@ use CodeInc\Psr7Responses\LocalFileResponse;
  * @package CodeInc\AssetsMiddleware\Responses
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class AssetResponse extends LocalFileResponse implements AssetResponseInterface
+class AssetResponse extends FileResponse implements AssetResponseInterface
 {
     /**
-     * @var string
+     * @var AssetInterface
      */
-    private $assetPath;
+    private $asset;
 
     /**
      * AssetResponse constructor.
      *
-     * @param string $assetPath
-     * @param string $contentType
+     * @param AssetInterface $asset
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
-    public function __construct(string $assetPath, string $contentType)
+    public function __construct(AssetInterface $asset)
     {
-        $this->assetPath = $assetPath;
+        $this->asset = $asset;
         parent::__construct(
-            $assetPath,
+            $asset->getFilename(),
+            $asset->getContent(),
             200,
             '',
-            null,
-            $contentType,
-            null,
-            false
+            $asset->getMediaType(),
+            $asset->getSize(),
+            $asset->asAttachment()
         );
     }
 
-
     /**
      * @inheritdoc
-     * @return string
+     * @return AssetInterface
      */
-    public function getAssetPath():string
+    public function getAsset():AssetInterface
     {
-        return $this->assetPath;
+        return $this->asset;
     }
 }
