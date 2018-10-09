@@ -31,7 +31,7 @@ use CodeInc\AssetsMiddleware\Exceptions\NotAnAssetException;
  * @package CodeInc\AssetsMiddleware\Resolvers
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class StaticAssetsResolver implements AssetResolverInterface
+class StaticAssetsResolver implements AssetResolverInterface, \IteratorAggregate, \Countable
 {
     /**
      * @var string[]
@@ -108,5 +108,23 @@ class StaticAssetsResolver implements AssetResolverInterface
             }
         }
         return null;
+    }
+
+    /**
+     * @inheritdoc
+     * @return \ArrayIterator
+     */
+    public function getIterator():\ArrayIterator
+    {
+        return new \ArrayIterator($this->assets);
+    }
+
+    /**
+     * @inheritdoc
+     * @return int
+     */
+    public function count():int
+    {
+        return count($this->assets);
     }
 }

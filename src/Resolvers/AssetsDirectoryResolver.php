@@ -41,22 +41,38 @@ class AssetsDirectoryResolver implements AssetResolverInterface
     /**
      * @var string
      */
-    private $baseUri;
+    private $uriPrefix;
 
     /**
      * AssetsDirectoryResolver constructor.
      *
      * @param string $dirPath
-     * @param string $baseUri
+     * @param string $uriPrefix
      * @throws NotADirectoryException
      */
-    public function __construct(string $dirPath, string $baseUri)
+    public function __construct(string $dirPath, string $uriPrefix)
     {
         if (($realDirPath = realpath($dirPath)) === false || !is_dir($realDirPath)) {
             throw new NotADirectoryException($dirPath);
         }
         $this->dirPath = $realDirPath;
-        $this->baseUri = $baseUri;
+        $this->uriPrefix = $uriPrefix;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDirPath():string
+    {
+        return $this->dirPath;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUriPrefix():string
+    {
+        return $this->uriPrefix;
     }
 
     /**
@@ -67,7 +83,7 @@ class AssetsDirectoryResolver implements AssetResolverInterface
      */
     public function getAsset(string $assetUri):?AssetInterface
     {
-        if (preg_match('#^'.preg_quote($this->baseUri, '#').'(.+)#ui', $assetUri, $matches)) {
+        if (preg_match('#^'.preg_quote($this->uriPrefix, '#').'(.+)#ui', $assetUri, $matches)) {
             $assetPath = $this->dirPath.DIRECTORY_SEPARATOR.$matches[1];
             if (($realAssetPath = realpath($assetPath)) !== false
                 && substr($realAssetPath, 0, strlen($this->dirPath)) == $this->dirPath) {
@@ -86,7 +102,7 @@ class AssetsDirectoryResolver implements AssetResolverInterface
     {
         if (($realAssetPath = realpath($assetPath)) !== false
             && preg_match('#^'.preg_quote($this->dirPath, '#').'(.+)#ui', $realAssetPath, $matches)) {
-            return $this->baseUri.$matches[1];
+            return $this->uriPrefix.$matches[1];
         }
         return null;
     }
