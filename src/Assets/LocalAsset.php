@@ -49,7 +49,7 @@ class LocalAsset extends StreamAsset
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      * @throws AssetReadException
      */
-    public function __construct(string $path, ?string $filename = null, bool $asAttachment = true,
+    public function __construct(string $path, ?string $filename = null, bool $asAttachment = false,
         ?string $mediaType = null, ?int $size = null)
     {
         $this->path = $path;

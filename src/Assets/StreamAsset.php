@@ -74,7 +74,7 @@ class StreamAsset implements AssetInterface
      * @throws \CodeInc\MediaTypes\Exceptions\MediaTypesException
      */
     public function __construct(StreamInterface $stream, string $filename, ?\DateTime $mTime = null,
-        bool $asAttachment = true, ?string $mediaType = null, ?int $size = null)
+        bool $asAttachment = false, ?string $mediaType = null, ?int $size = null)
     {
         $this->filename = $filename;
         $this->asAttachment = $asAttachment;
