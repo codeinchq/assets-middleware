@@ -38,10 +38,8 @@ use CodeInc\AssetsMiddleware\Resolvers\AssetResolverAggregator;
 $assetsMiddleware = new AssetsMiddleware(
     new AssetResolverAggregator([
         new StaticAssetsResolver(['/favicon.ico' => '/local/favicon/file.ico']),
-        new AssetsDirectoryResolver(
-            '/path/to/my/assets/assets/', // <-- directory path
-            '/assets/' // <-- assets URI prefix
-        )
+        new AssetsDirectoryResolver('/path/to/my/css/', '/css/'),
+        new AssetsDirectoryResolver('/path/to/my/images/', '/images/')
     ])
 );
 
