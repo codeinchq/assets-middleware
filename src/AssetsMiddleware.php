@@ -30,7 +30,6 @@ use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
 use CodeInc\AssetsMiddleware\Responses\AssetMinifiedResponse;
 use CodeInc\AssetsMiddleware\Responses\NotModifiedAssetResponse;
 use Micheh\Cache\CacheUtil;
-use function PHPSTORM_META\elementType;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -88,7 +87,7 @@ class AssetsMiddleware implements MiddlewareInterface
      * @param bool $cacheAssets Allows the assets to the cached in the web browser
      * @param bool $minifyAssets Minimizes the assets before sending them (@see AssetCompressedResponse)
      */
-    public function __construct(AssetResolverInterface $resolver, string $assetsUriPrefix,
+    public function __construct(AssetResolverInterface $resolver, string $assetsUriPrefix = '/',
         bool $cacheAssets = true, bool $minifyAssets = false)
     {
         $this->resolver = $resolver;
