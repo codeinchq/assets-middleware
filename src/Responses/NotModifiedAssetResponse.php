@@ -21,6 +21,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 use CodeInc\Psr7Responses\NotModifiedResponse;
 
 
@@ -33,27 +34,27 @@ use CodeInc\Psr7Responses\NotModifiedResponse;
 class NotModifiedAssetResponse extends NotModifiedResponse implements AssetResponseInterface
 {
     /**
-     * @var string
+     * @var AssetInterface
      */
-    private $assetPath;
+    private $asset;
 
     /**
      * AssetNotModifiedResponse constructor.
      *
-     * @param string $assetPath
+     * @param AssetInterface $asset
      */
-    public function __construct(string $assetPath)
+    public function __construct(AssetInterface $asset)
     {
-        $this->assetPath = $assetPath;
+        $this->asset = $asset;
         parent::__construct();
     }
 
     /**
      * @inheritdoc
-     * @return string
+     * @return AssetInterface
      */
-    public function getAssetPath():string
+    public function getAsset():AssetInterface
     {
-        return $this->assetPath;
+        return $this->asset;
     }
 }

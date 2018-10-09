@@ -15,7 +15,7 @@
 // +---------------------------------------------------------------------+
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
-// Date:     28/09/2018
+// Date:     09/10/2018
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
@@ -24,40 +24,41 @@ use Throwable;
 
 
 /**
- * Class NotADirectoryException
+ * Class NotAnAssetResolverException
  *
  * @package CodeInc\AssetsMiddleware\Exceptions
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class NotADirectoryException extends \LogicException implements AssetsMiddlewareException
+class NotAnAssetResolverException extends \LogicException implements AssetsMiddlewareException
 {
     /**
-     * @var string
+     * @var mixed
      */
-    private $path;
+    private $item;
 
     /**
-     * NotADirectoryException constructor.
+     * NotAnAssetResolverException constructor.
      *
-     * @param string $path
+     * @param mixed $item
      * @param int $code
      * @param Throwable|null $previous
      */
-    public function __construct(string $path, int $code = 0, Throwable $previous = null)
+    public function __construct($item, int $code = 0, Throwable $previous = null)
     {
-        $this->path = $path;
+        $this->item = $item;
         parent::__construct(
-            sprintf("The path '%s' is not a directory or does not exist.", $path),
+            sprintf("The item '%s' is not a resolver. All resolvers must implement '%s'.",
+                is_object($item) ? get_class($item) : (string)$item),
             $code,
             $previous
         );
     }
 
     /**
-     * @return string
+     * @return mixed
      */
-    public function getPath():string
+    public function getItem()
     {
-        return $this->path;
+        return $this->item;
     }
 }

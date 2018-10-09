@@ -20,6 +20,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Responses;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 use Psr\Http\Message\ResponseInterface;
 
 
@@ -32,9 +33,9 @@ use Psr\Http\Message\ResponseInterface;
 interface AssetResponseInterface extends ResponseInterface
 {
     /**
-     * Returns the asset's path.
+     * Returns the asset.
      *
-     * @return string
+     * @return AssetInterface
      */
-    public function getAssetPath():string;
+    public function getAsset():AssetInterface;
 }
