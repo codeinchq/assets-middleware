@@ -15,7 +15,7 @@
 // +---------------------------------------------------------------------+
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
-// Date:     28/09/2018
+// Date:     09/10/2018
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
@@ -24,12 +24,12 @@ use Throwable;
 
 
 /**
- * Class NotADirectoryException
+ * Class NotAnAssetException
  *
  * @package CodeInc\AssetsMiddleware\Exceptions
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class NotADirectoryException extends \LogicException implements AssetsMiddlewareException
+class NotAnAssetException extends \LogicException implements AssetsMiddlewareException
 {
     /**
      * @var string
@@ -37,7 +37,7 @@ class NotADirectoryException extends \LogicException implements AssetsMiddleware
     private $path;
 
     /**
-     * NotADirectoryException constructor.
+     * NotAnAssetException constructor.
      *
      * @param string $path
      * @param int $code
@@ -47,7 +47,7 @@ class NotADirectoryException extends \LogicException implements AssetsMiddleware
     {
         $this->path = $path;
         parent::__construct(
-            sprintf("The path '%s' is not a directory or does not exist.", $path),
+            sprintf("The asset '%s' does not exist.", $path),
             $code,
             $previous
         );

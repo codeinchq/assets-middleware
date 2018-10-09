@@ -15,49 +15,35 @@
 // +---------------------------------------------------------------------+
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
-// Date:     28/09/2018
+// Date:     09/10/2018
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware\Exceptions;
-use Throwable;
+namespace CodeInc\AssetsMiddleware\Resolvers;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 
 
 /**
- * Class NotADirectoryException
+ * Interface AssetResolverInterface
  *
- * @package CodeInc\AssetsMiddleware\Exceptions
+ * @package CodeInc\AssetsMiddleware\Resolvers
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class NotADirectoryException extends \LogicException implements AssetsMiddlewareException
+interface AssetResolverInterface
 {
     /**
-     * @var string
-     */
-    private $path;
-
-    /**
-     * NotADirectoryException constructor.
+     * Returns the asset corresponding to a given route.
      *
-     * @param string $path
-     * @param int $code
-     * @param Throwable|null $previous
+     * @param string $assetUri
+     * @return AssetInterface|null
      */
-    public function __construct(string $path, int $code = 0, Throwable $previous = null)
-    {
-        $this->path = $path;
-        parent::__construct(
-            sprintf("The path '%s' is not a directory or does not exist.", $path),
-            $code,
-            $previous
-        );
-    }
+    public function getAsset(string $assetUri):?AssetInterface;
 
     /**
-     * @return string
+     * Returns the URI of an asset.
+     *
+     * @param string $assetPath
+     * @return null|string
      */
-    public function getPath():string
-    {
-        return $this->path;
-    }
+    public function getAssetUri(string $assetPath):?string;
 }

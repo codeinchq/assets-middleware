@@ -20,6 +20,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Exceptions;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 use Throwable;
 
 
@@ -32,32 +33,33 @@ use Throwable;
 class ResponseErrorException extends \RuntimeException implements AssetsMiddlewareException
 {
     /**
-     * @var string
+     * @var AssetInterface
      */
-    private $assetPath;
+    private $asset;
 
     /**
      * ResponseErrorException constructor.
      *
-     * @param string $assetPath
+     * @param AssetInterface $asset
      * @param int $code
      * @param Throwable|null $previous
      */
-    public function __construct(string $assetPath, int $code = 0, Throwable $previous = null)
+    public function __construct(AssetInterface $asset, int $code = 0, Throwable $previous = null)
     {
-        $this->assetPath = $assetPath;
+        $this->asset = $asset;
         parent::__construct(
-            sprintf("Error while building the PSR-7 response for the asset '%s'.", $assetPath),
+            sprintf("Error while building the PSR-7 response for the asset '%s'.",
+                $asset->getFilename()),
             $code,
             $previous
         );
     }
 
     /**
-     * @return string
+     * @return AssetInterface
      */
-    public function getAssetPath():string
+    public function getAsset():AssetInterface
     {
-        return $this->assetPath;
+        return $this->asset;
     }
 }

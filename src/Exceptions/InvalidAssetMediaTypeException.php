@@ -20,6 +20,7 @@
 //
 declare(strict_types=1);
 namespace CodeInc\AssetsMiddleware\Exceptions;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 use Throwable;
 
 
@@ -32,47 +33,33 @@ use Throwable;
 class InvalidAssetMediaTypeException extends \RuntimeException implements AssetsMiddlewareException
 {
     /**
-     * @var string
+     * @var AssetInterface
      */
-    private $assetPath;
-
-    /**
-     * @var string
-     */
-    private $mediaType;
+    private $asset;
 
     /**
      * InvalidAssetMediaTypeException constructor.
      *
-     * @param string $assetPath
-     * @param string $mediaType
+     * @param AssetInterface $asset
      * @param int $code
      * @param Throwable|null $previous
      */
-    public function __construct(string $assetPath, string $mediaType, int $code = 0, Throwable $previous = null)
+    public function __construct(AssetInterface $asset, int $code = 0, Throwable $previous = null)
     {
-        $this->assetPath = $assetPath;
-        $this->mediaType = $mediaType;
+        $this->asset = $asset;
         parent::__construct(
-            sprintf("The media type '%s' of the asset '%s' is not allowed.", $mediaType, $assetPath),
+            sprintf("The media type '%s' is not allowed for the asset '%s'.",
+                $asset->getMediaType(), $asset->getFilename()),
             $code,
             $previous
         );
     }
 
     /**
-     * @return string
+     * @return AssetInterface
      */
-    public function getAssetPath():string
+    public function getAsset():AssetInterface
     {
-        return $this->assetPath;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMediaType():string
-    {
-        return $this->mediaType;
+        return $this->asset;
     }
 }

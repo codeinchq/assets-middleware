@@ -21,16 +21,14 @@
 //
 declare(strict_types = 1);
 namespace CodeInc\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Assets\AssetInterface;
 use CodeInc\AssetsMiddleware\Exceptions\InvalidAssetMediaTypeException;
-use CodeInc\AssetsMiddleware\Exceptions\InvalidAssetPathException;
-use CodeInc\AssetsMiddleware\Exceptions\EmptyDirectoryKeyException;
-use CodeInc\AssetsMiddleware\Exceptions\NotADirectoryException;
 use CodeInc\AssetsMiddleware\Exceptions\ResponseErrorException;
+use CodeInc\AssetsMiddleware\Resolvers\AssetResolverInterface;
 use CodeInc\AssetsMiddleware\Responses\AssetResponse;
 use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
-use CodeInc\AssetsMiddleware\Responses\MinifiedAssetResponse;
+use CodeInc\AssetsMiddleware\Responses\AssetMinifiedResponse;
 use CodeInc\AssetsMiddleware\Responses\NotModifiedAssetResponse;
-use CodeInc\MediaTypes\MediaTypes;
 use Micheh\Cache\CacheUtil;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -49,9 +47,9 @@ use Psr\Http\Server\RequestHandlerInterface;
 class AssetsMiddleware implements MiddlewareInterface
 {
     /**
-     * @var array
+     * @var AssetResolverInterface
      */
-    private $assetsDirectories = [];
+    private $resolver;
 
     /**
      * Base assets URI path.
@@ -72,7 +70,7 @@ class AssetsMiddleware implements MiddlewareInterface
      *
      * @var bool
      */
-    private $minimizeAssets;
+    private $minifyAssets;
 
     /**
      * Limits the allowed assets media types.
@@ -84,43 +82,19 @@ class AssetsMiddleware implements MiddlewareInterface
     /**
      * AssetsMiddleware constructor.
      *
+     * @param AssetResolverInterface $resolver
      * @param string $assetsUriPrefix Base assets URI path
      * @param bool $cacheAssets Allows the assets to the cached in the web browser
-     * @param bool $minimizeAssets Minimizes the assets before sending them (@see AssetCompressedResponse)
+     * @param bool $minifyAssets Minimizes the assets before sending them (@see AssetCompressedResponse)
      */
-    public function __construct(string $assetsUriPrefix, bool $cacheAssets = true,
-        bool $minimizeAssets = false)
+    public function __construct(AssetResolverInterface $resolver, string $assetsUriPrefix,
+        bool $cacheAssets = true, bool $minifyAssets = false)
     {
+        $this->resolver = $resolver;
         $this->assetsUriPrefix = $assetsUriPrefix;
         $this->cacheAssets = $cacheAssets;
-        $this->minimizeAssets = $minimizeAssets;
+        $this->minifyAssets = $minifyAssets;
     }
-
-    /**
-     * Adds an assets directory
-     *
-     * @param string $directoryPath
-     * @param string|null $directoryKey
-     */
-    public function addAssetsDirectory(string $directoryPath, string $directoryKey = null):void
-    {
-        if (!is_dir($directoryPath) || ($directoryPath = realpath($directoryPath)) === false) {
-            throw new NotADirectoryException($directoryPath);
-        }
-        if ($directoryKey !== null && empty($directoryKey)) {
-            throw new EmptyDirectoryKeyException($directoryPath);
-        }
-        $this->assetsDirectories[$directoryKey ?? hash('sha1', $directoryPath)] = $directoryPath;
-    }
-
-    /**
-     * @inheritdoc
-     * @return iterable
-     */
-   protected function getAssetsDirectories():iterable
-   {
-       return $this->assetsDirectories;
-   }
 
     /**
      * Sets the allowed media types for the assets. The comparison supports shell patterns with operators
@@ -136,6 +110,14 @@ class AssetsMiddleware implements MiddlewareInterface
     }
 
     /**
+     * @return null|string[]
+     */
+    public function getAllowedMediaTypes():?array
+    {
+        return $this->allowedMediaTypes;
+    }
+
+    /**
      * @inheritdoc
      * @param ServerRequestInterface $request
      * @param RequestHandlerInterface $handler
@@ -143,110 +125,65 @@ class AssetsMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler):ResponseInterface
     {
-        // if the requests points toward an assets directory
-        if (preg_match('#^'.preg_quote($this->assetsUriPrefix, '#').'([^/]+)/(.+)$#i',
-            $request->getUri()->getPath(), $matches)) {
-
-            // searching for the corresponding assets directory
-            foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
-
-                // if a match is found
-                if ($matches[1] == $directoryKey) {
-                    if (($realDirectoryPath = realpath($directoryPath)) === false) {
-                        throw new NotADirectoryException($directoryPath);
-                    }
-
-                    // validating the assets location
-                    $assetPath = realpath($directoryPath.DIRECTORY_SEPARATOR.$matches[2]);
-                    if ($assetPath && substr($assetPath, 0, strlen($realDirectoryPath)) == $realDirectoryPath)
-                    {
-                        return $this->buildAssetResponse($assetPath, $request);
-                    }
+        $reqUriPath = $request->getUri()->getPath();
+        if (preg_match('/^'.preg_quote($this->assetsUriPrefix, '/').'.+$/ui', $reqUriPath)
+            && ($asset = $this->resolver->getAsset($reqUriPath)) !== null)
+        {
+            try {
+                // checking the asset's media type
+                if (!$this->isMediaTypeAllowed($asset)) {
+                    throw new InvalidAssetMediaTypeException($asset);
                 }
+
+                // building the response
+                $response = $this->minifyAssets
+                    ? new AssetMinifiedResponse($asset)
+                    : new AssetResponse($asset);
+
+                // enabling cache
+                if ($this->cacheAssets && ($mTime = $asset->getMTime()) !== null) {
+                    $cache = new CacheUtil();
+                    $response = $cache->withCache($response, true, 3600);
+                    $response = $cache->withETag($response, hash('sha1', (string)$mTime->getTimestamp()));
+                    $response = $cache->withLastModified($response, $mTime);
+                    if ($cache->isNotModified($request, $response)) {
+                        $response = new NotModifiedAssetResponse($asset);
+                    }
+                    return $response;
+                }
+                return $response;
+            }
+            catch (\Throwable $exception) {
+                throw new ResponseErrorException($asset, 0, $exception);
             }
         }
 
         return $handler->handle($request);
     }
 
-    /**
-     * Builds and returns the asset's PSR-7 response.
-     *
-     * @param string $assetPath
-     * @param ServerRequestInterface $request
-     * @return AssetResponseInterface
-     */
-    private function buildAssetResponse(string $assetPath, ServerRequestInterface $request):AssetResponseInterface
-    {
-        try {
-            // reading the assets media type
-            $assetMediaType = MediaTypes::getFilenameMediaType($assetPath);
-
-            // checking the asset's media type
-            if (!$this->isMediaTypeAllowed($assetMediaType)) {
-                throw new InvalidAssetMediaTypeException($assetPath, $assetMediaType);
-            }
-
-            // building the response
-            $response = $this->minimizeAssets
-                ? new MinifiedAssetResponse($assetPath, $assetMediaType) :
-                new AssetResponse($assetPath, $assetMediaType);
-
-            // enabling cache
-            if ($this->cacheAssets) {
-                $assetMTime = filemtime($assetPath);
-                $cache = new CacheUtil();
-                $response = $cache->withCache($response, true, 3600);
-                $response = $cache->withETag($response, hash('sha1', (string)$assetMTime));
-                $response = $cache->withLastModified($response, $assetMTime);
-                if ($cache->isNotModified($request, $response)) {
-                    $response = new NotModifiedAssetResponse($assetPath);
-                }
-                return $response;
-            }
-            return $response;
-        }
-        catch (\Throwable $exception) {
-            throw new ResponseErrorException($assetPath, 0, $exception);
-        }
-    }
 
     /**
      * Verifies if the assets media type is supported.
      *
-     * @param string $assetMediaType
+     * @param AssetInterface $asset
      * @return bool
      */
-    protected function isMediaTypeAllowed(string $assetMediaType):bool
+    protected function isMediaTypeAllowed(AssetInterface $asset):bool
     {
-        if (is_array($this->allowedMediaTypes) && !empty($this->allowedMediaTypes)) {
-            foreach ($this->allowedMediaTypes as $mediaType) {
-                if (strcasecmp($assetMediaType, $mediaType) === 0 || fnmatch($mediaType, $assetMediaType)) {
-                    return true;
-                }
-            }
-            return false;
+        if (is_array($this->allowedMediaTypes)) {
+            return (bool)preg_grep('/^'.preg_quote($asset->getMediaType(), '/').'$/ui',
+                $this->allowedMediaTypes);
         }
         return true;
     }
 
     /**
-     * Returns the public URI for a given asset. The asset must be within a registered assets directory.
+     * Returns the assets resolver in use.
      *
-     * @param string $assetPath
-     * @return string
+     * @return AssetResolverInterface
      */
-    public function getAssetUri(string $assetPath):?string
+    public function getResolver():AssetResolverInterface
     {
-        if (($realAssetPath = realpath($assetPath)) === false) {
-            throw new InvalidAssetPathException($assetPath);
-        }
-        foreach ($this->getAssetsDirectories() as $directoryKey => $directoryPath) {
-            if (substr($assetPath, 0, strlen($directoryPath)) == $directoryPath) {
-                return $this->assetsUriPrefix.urlencode($directoryKey).'/'
-                    .str_replace('\\', '/', substr($assetPath, strlen($directoryPath) + 1));
-            }
-        }
-        return null;
+        return $this->resolver;
     }
 }

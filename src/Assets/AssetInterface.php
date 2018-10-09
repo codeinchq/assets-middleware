@@ -15,49 +15,61 @@
 // +---------------------------------------------------------------------+
 //
 // Author:   Joan Fabrégat <joan@codeinc.fr>
-// Date:     28/09/2018
+// Date:     09/10/2018
 // Project:  AssetsMiddleware
 //
 declare(strict_types=1);
-namespace CodeInc\AssetsMiddleware\Exceptions;
-use Throwable;
+namespace CodeInc\AssetsMiddleware\Assets;
+use Psr\Http\Message\StreamInterface;
 
 
 /**
- * Class InvalidAssetPathException
+ * Interface AssetInterface
  *
- * @package CodeInc\AssetsMiddleware\Exceptions
+ * @package CodeInc\AssetsMiddleware
  * @author Joan Fabrégat <joan@codeinc.fr>
  */
-class InvalidAssetPathException extends \RuntimeException implements AssetsMiddlewareException
+interface AssetInterface
 {
     /**
-     * @var string
-     */
-    private $assetPath;
-
-    /**
-     * InvalidAssetPathException constructor.
+     * Returns the asset's filename.
      *
-     * @param string $assetPath
-     * @param int $code
-     * @param Throwable|null $previous
-     */
-    public function __construct(string $assetPath, int $code = 0, Throwable $previous = null)
-    {
-        $this->assetPath = $assetPath;
-        parent::__construct(
-            sprintf("The asset path '%s' is not valid.", $assetPath),
-            $code,
-            $previous
-        );
-    }
-
-    /**
      * @return string
      */
-    public function getAssetPath():string
-    {
-        return $this->assetPath;
-    }
+    public function getFilename():string;
+
+    /**
+     * Returns the asset's size or NULL if unknown.
+     *
+     * @return int|null
+     */
+    public function getSize():?int;
+
+    /**
+     * Returns the last modification time or NULL if unknown.
+     *
+     * @return \DateTime|null
+     */
+    public function getMTime():?\DateTime;
+
+    /**
+     * Verifies if the assets must be downloaded as an attachment.
+     *
+     * @return bool
+     */
+    public function asAttachment():bool;
+
+    /**
+     * Returns the assets media type or NULL if unknown.
+     *
+     * @return string
+     */
+    public function getMediaType():string;
+
+    /**
+     * Returns a stream to the assets interface.
+     *
+     * @return StreamInterface
+     */
+    public function getContent():StreamInterface;
 }
