@@ -30,6 +30,7 @@ use CodeInc\AssetsMiddleware\Responses\AssetResponseInterface;
 use CodeInc\AssetsMiddleware\Responses\AssetMinifiedResponse;
 use CodeInc\AssetsMiddleware\Responses\NotModifiedAssetResponse;
 use Micheh\Cache\CacheUtil;
+use function PHPSTORM_META\elementType;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -171,8 +172,12 @@ class AssetsMiddleware implements MiddlewareInterface
     protected function isMediaTypeAllowed(AssetInterface $asset):bool
     {
         if (is_array($this->allowedMediaTypes)) {
-            return (bool)preg_grep('/^'.preg_quote($asset->getMediaType(), '/').'$/ui',
-                $this->allowedMediaTypes);
+            foreach ($this->allowedMediaTypes as $allowedMediaType) {
+                if (fnmatch($allowedMediaType, $asset->getMediaType())) {
+                    return true;
+                }
+            }
+            return false;
         }
         return true;
     }
