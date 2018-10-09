@@ -26,7 +26,7 @@ $assetsMiddleware->setAllowMediaTypes([
 $assetsMiddleware->process($aPsr7ServerRequest, $aPsr15RequestHandler); // <-- returns a PSR-7 response
 ```
 
-### Using multiple resolver
+### Using multiple resolvers
 
 ```php
 <?php
