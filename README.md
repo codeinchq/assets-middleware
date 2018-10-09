@@ -7,24 +7,43 @@ This PHP 7.1 library is a [PSR-15](https://www.php-fig.org/psr/psr-15/) middlewa
 ```php
 <?php
 use CodeInc\AssetsMiddleware\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Resolvers\AssetsDirectoryResolver;
 
 $assetsMiddleware = new AssetsMiddleware(
-    '/assets/' // <-- specifies the assets base URI path
-); 
-
-// adding web assets directories
-$assetsMiddleware->addAssetsDirectory('/path/to/my/first/web-assets-directory');
-$assetsMiddleware->addAssetsDirectory('/path/to/another/web-assets-directory');
-
+    new AssetsDirectoryResolver(
+        '/path/to/my/assets/assets/', // <-- directory path
+        '/assets/' // <-- assets URI prefix
+    )
+);
 // optionally you can limit the acceptable media types
 $assetsMiddleware->setAllowMediaTypes([
-    'image/*',
+    'image/*', // supports shell patterns through fnmatch()
     'text/css',
     'application/javascript'
 ]);
 
-// returns the computed path to the assets directory
-$assetsMiddleware->getAssetUri('/path/to/another/web-assets-directory/an-image.jpg');
+// processed a PSR-7 server request as a PSR-15 middleware
+$assetsMiddleware->process($aPsr7ServerRequest, $aPsr15RequestHandler); // <-- returns a PSR-7 response
+```
+
+### Using multiple resolver
+
+```php
+<?php
+use CodeInc\AssetsMiddleware\AssetsMiddleware;
+use CodeInc\AssetsMiddleware\Resolvers\AssetsDirectoryResolver;
+use CodeInc\AssetsMiddleware\Resolvers\StaticAssetsResolver;
+use CodeInc\AssetsMiddleware\Resolvers\AssetResolverAggregator;
+
+$assetsMiddleware = new AssetsMiddleware(
+    new AssetResolverAggregator([
+        new StaticAssetsResolver(['/favicon.ico' => '/local/favicon/file.ico']),
+        new AssetsDirectoryResolver(
+            '/path/to/my/assets/assets/', // <-- directory path
+            '/assets/' // <-- assets URI prefix
+        )
+    ])
+);
 
 // processed a PSR-7 server request as a PSR-15 middleware
 $assetsMiddleware->process($aPsr7ServerRequest, $aPsr15RequestHandler); // <-- returns a PSR-7 response
