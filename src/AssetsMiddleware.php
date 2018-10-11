@@ -52,13 +52,6 @@ class AssetsMiddleware implements MiddlewareInterface
     private $resolver;
 
     /**
-     * Base assets URI path.
-     *
-     * @var string
-     */
-    private $assetsUriPrefix;
-
-    /**
      * Allows the assets to the cached in the web browser.
      *
      * @var bool
@@ -83,15 +76,13 @@ class AssetsMiddleware implements MiddlewareInterface
      * AssetsMiddleware constructor.
      *
      * @param AssetResolverInterface $resolver
-     * @param string $assetsUriPrefix Base assets URI path
      * @param bool $cacheAssets Allows the assets to the cached in the web browser
      * @param bool $minifyAssets Minimizes the assets before sending them (@see AssetCompressedResponse)
      */
-    public function __construct(AssetResolverInterface $resolver, string $assetsUriPrefix = '/',
+    public function __construct(AssetResolverInterface $resolver,
         bool $cacheAssets = true, bool $minifyAssets = false)
     {
         $this->resolver = $resolver;
-        $this->assetsUriPrefix = $assetsUriPrefix;
         $this->cacheAssets = $cacheAssets;
         $this->minifyAssets = $minifyAssets;
     }
@@ -125,9 +116,7 @@ class AssetsMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler):ResponseInterface
     {
-        $reqUriPath = $request->getUri()->getPath();
-        if (preg_match('/^'.preg_quote($this->assetsUriPrefix, '/').'.+$/ui', $reqUriPath)
-            && ($asset = $this->resolver->getAsset($reqUriPath)) !== null)
+        if (($asset = $this->resolver->getAsset($request->getUri()->getPath())) !== null)
         {
             try {
                 // checking the asset's media type
@@ -157,7 +146,6 @@ class AssetsMiddleware implements MiddlewareInterface
                 throw new ResponseErrorException($asset, 0, $exception);
             }
         }
-
         return $handler->handle($request);
     }
 
